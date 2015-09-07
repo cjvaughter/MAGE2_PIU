@@ -7,9 +7,9 @@ Version A
 ******************************************************************************/
 
 #include "RN4677BT.h"
-#include <elapsedMillis.h>
+#include "elapsedMillis.h"
 
-#DEFINE DELAY_MS 500 //delay between sending config commands
+#define DELAY_MS 500 //delay between sending config commands
 
 RB4677BTClass bluetooth;
 elapsedMillis timeElapsed;
@@ -20,7 +20,7 @@ void RB4677BTClass::classicMasterInit()
 	Serial.begin(9600);
 	Serial.println("$$$");
 	delay(DELAY_MS);
-	Serial.println("SF,1") //sets to factory defaults
+	Serial.println("SF,1"); //sets to factory defaults
 	delay(DELAY_MS);
 	Serial.end();
 	Serial.begin(115200); //factory default BAUD rate
@@ -42,7 +42,7 @@ void RB4677BTClass::classicSlaveInit()
 	Serial.begin(9600);
 	Serial.println("$$$");
 	delay(DELAY_MS);
-	Serial.println("SF,1") //sets to factory defaults
+	Serial.println("SF,1"); //sets to factory defaults
 	delay(DELAY_MS);
 	Serial.end();
 	Serial.begin(115200); //factory default BAUD rate
@@ -64,7 +64,7 @@ void RB4677BTClass::BLEMasterInit()
 	Serial.begin(9600);
 	Serial.println("$$$");
 	delay(DELAY_MS);
-	Serial.println("SF,1") //sets to factory defaults
+	Serial.println("SF,1"); //sets to factory defaults
 	delay(DELAY_MS);
 	Serial.end();
 	Serial.begin(115200); //factory default BAUD rate
@@ -86,7 +86,7 @@ void RB4677BTClass::BLESlaveInit()
 	Serial.begin(9600);
 	Serial.println("$$$");
 	delay(DELAY_MS);
-	Serial.println("SF,1") //sets to factory defaults
+	Serial.println("SF,1"); //sets to factory defaults
 	delay(DELAY_MS);
 	Serial.end();
 	Serial.begin(115200); //factory default BAUD rate
@@ -104,7 +104,7 @@ void RB4677BTClass::BLESlaveInit()
 	Serial.begin(9600);
 }
 
-void RB4677BTClass::scanClassic(String MACaddr)
+String RB4677BTClass::scanClassic(String MACaddr)
 {
 	Serial.println("I,10,0"); //per data sheet, this sets up a scan for 10 seconds with no device filtering
 	delay(DELAY_MS);
@@ -114,7 +114,7 @@ void RB4677BTClass::scanClassic(String MACaddr)
 	}
 	return MACaddr;
 }
-void RB4677BTClass::scanBLE(String MACaddr)
+String RB4677BTClass::scanBLE(String MACaddr)
 {
 	Serial.println("IL,A,0320,0190"); //per data sheet, this sets up a scan for 20 seconds with no device filtering, sets scan rates
 	delay(DELAY_MS);
@@ -138,7 +138,7 @@ void RB4677BTClass::disconnect()
 {
 	Serial.println("K,1");
 	delay(DELAY_MS);
-
+}
 void RB4677BTClass::setName(String name)
 {
 	Serial.println("SN," + name);
@@ -157,18 +157,22 @@ void RB4677BTClass::reset()
 }
 
 void RB4677BTClass::displayFirmware()
+{
 	Serial.println("V");
 	delay(DELAY_MS);
 	while(Serial.available())
 	{
-		SerialDebug.print(Serial.read());//<- change this to the correct serial port later
+		//SerialDebug.print(Serial.read());//<- change this to the correct serial port later
+		Serial.read(); //temporary replacement for the above line
 	}
+}
 void RB4677BTClass::displayConfiguration()
 {
 	Serial.println("X");
 	delay(DELAY_MS);
 	while(Serial.available())
 	{
-		SerialDebug.print(Serial.read());//<- change this to the correct serial port later
+		//SerialDebug.print(Serial.read());//<- change this to the correct serial port later
+		Serial.read(); //temporary replacement for the above line
 	}
 }
