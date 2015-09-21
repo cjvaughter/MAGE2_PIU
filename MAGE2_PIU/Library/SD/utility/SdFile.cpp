@@ -21,7 +21,7 @@
 #ifdef __AVR__
 #include <avr/pgmspace.h>
 #endif
-#include "../../../Arduino.h"
+#include <Arduino.h>
 //------------------------------------------------------------------------------
 // callback function for date/time
 void (*SdFile::dateTime_)(uint16_t* date, uint16_t* time) = NULL;

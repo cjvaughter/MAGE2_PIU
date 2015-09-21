@@ -64,6 +64,8 @@ class Stream : public Print
   bool find(uint8_t *target, size_t length) { return find ((char *)target, length); }
   // returns true if target string is found, false if timed out
 
+  bool find(char target) { return find (&target, 1); }
+
   bool findUntil(char *target, char *terminator);   // as find but search ends if the terminator string is found
   bool findUntil(uint8_t *target, char *terminator) { return findUntil((char *)target, terminator); }
 
@@ -97,6 +99,17 @@ class Stream : public Print
   // this allows format characters (typically commas) in values to be ignored
 
   float parseFloat(char skipChar);  // as above but the given skipChar is ignored
+
+  struct MultiTarget {
+    const char *str;  // string you're searching for
+    size_t len;       // length of string you're searching for
+    size_t index;     // index used by the search routine.
+  };
+
+  // This allows you to search for an arbitrary number of strings.
+  // Returns index of the target that is found first or -1 if timeout occurs.
+  int findMulti(struct MultiTarget *targets, int tCount);
 };
+
 
 #endif

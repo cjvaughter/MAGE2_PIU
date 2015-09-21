@@ -1,9 +1,5 @@
-#include "Core/Arduino.h"
-#include "Core/Libraries/RN4677BT/RN4677BT.h"
-
-#define Trace Serial
-#define XB Serial1
-#define BT Serial2
+#include "Arduino.h"
+#include "Bluetooth.h"
 
 bool XBMsgRx = false;
 bool XBMsgStart = false;
@@ -17,8 +13,8 @@ void UpdateDisplay();
 
 void setup()
 {
-	XB.begin(9600);
-	BT.begin(9600);
+	//XB.begin(9600);
+	Bluetooth.setPort(&Serial);
 }
 
 void loop()
@@ -31,7 +27,7 @@ void loop()
 
 void CheckXB()
 {
-	if (XB.available() > 0)
+	//if (XB.available() > 0)
 	{
 		//read bytes into packet
 		//set flags
@@ -40,7 +36,7 @@ void CheckXB()
 
 void CheckBT()
 {
-	if (BT.available() > 0)
+	//if (BT.available() > 0)
 	{
 		//read bytes into packet
 		//set flags

@@ -1,18 +1,22 @@
 /******************************************************************************
-RN4677BT.h
-Microchip Bluetooth Dual Mode model RB4677 Library Header File
+Bluetooth.h
+Microchip Bluetooth Dual Mode model RN4677 Library Header File
 Jacob Dixon
 Original Creation Date: August 30, 2015
 Version A
 ******************************************************************************/
 
-#ifndef RN4677BT_h
-#define RN4677BT_h
-#include "../../Arduino.h"
+#ifndef BLUETOOTH_h
+#define BLUETOOTH_h
+#include "Arduino.h"
+#include "elapsedMillis.h"
 
-class RB4677BTClass
+#define DELAY_MS 500 //delay between sending config commands
+
+class BluetoothClass
 {
 	public:
+		void setPort(HardwareSerial* port);
 		void classicMasterInit(); //master (central) config with BT 2.1 mode aka "Classic"
 		void classicSlaveInit(); //slave (peripheral) config with BT 2.1 mode aka "Classic"
 		void BLEMasterInit(); //master (central) config with BT 4.0 mode aka "BLE"
@@ -27,10 +31,13 @@ class RB4677BTClass
 		void disconnect();
 		void displayFirmware();
 		void displayConfiguration();
+		static const unsigned int timeInterval = 10000; //Bluetooth search time
 	private:
-		String MACaddr = "";
+		String MACaddr;
+		HardwareSerial* _port;
+		elapsedMillis timeElapsed;
 };
 
-extern RB4677BTClass bluetooth;
+extern BluetoothClass Bluetooth;
 		
 #endif

@@ -18,12 +18,12 @@
  * <http://www.gnu.org/licenses/>.
  */
 #define USE_SPI_LIB
-#include "../../../Arduino.h"
+#include <Arduino.h>
 #include "Sd2Card.h"
 //------------------------------------------------------------------------------
 #ifndef SOFTWARE_SPI
 #ifdef USE_SPI_LIB
-#include "../../SPI/SPI.h"
+#include <SPI.h>
 static SPISettings settings;
 #endif
 // functions for hardware SPI
@@ -283,7 +283,7 @@ uint8_t Sd2Card::init(uint8_t sckRateID, uint8_t chipSelectPin) {
 
   // command to go idle in SPI mode
   while ((status_ = cardCommand(CMD0, 0)) != R1_IDLE_STATE) {
-    if (((uint16_t)millis() - t0) > SD_INIT_TIMEOUT) {
+    if (((uint16_t)(millis() - t0)) > SD_INIT_TIMEOUT) {
       error(SD_CARD_ERROR_CMD0);
       goto fail;
     }
@@ -305,7 +305,7 @@ uint8_t Sd2Card::init(uint8_t sckRateID, uint8_t chipSelectPin) {
 
   while ((status_ = cardAcmd(ACMD41, arg)) != R1_READY_STATE) {
     // check for timeout
-    if (((uint16_t)millis() - t0) > SD_INIT_TIMEOUT) {
+    if (((uint16_t)(millis() - t0)) > SD_INIT_TIMEOUT) {
       error(SD_CARD_ERROR_ACMD41);
       goto fail;
     }
@@ -376,7 +376,6 @@ uint8_t Sd2Card::readBlock(uint32_t block, uint8_t* dst) {
  */
 uint8_t Sd2Card::readData(uint32_t block,
         uint16_t offset, uint16_t count, uint8_t* dst) {
-  uint16_t n;
   if (count == 0) return true;
   if ((count + offset) > 512) {
     goto fail;
@@ -407,7 +406,7 @@ uint8_t Sd2Card::readData(uint32_t block,
     SPDR = 0XFF;
   }
   // transfer data
-  n = count - 1;
+  uint16_t n = count - 1;
   for (uint16_t i = 0; i < n; i++) {
     while (!(SPSR & (1 << SPIF)))
       ;
