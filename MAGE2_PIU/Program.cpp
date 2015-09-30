@@ -1,55 +1,46 @@
-#include "Arduino.h"
-#include "Bluetooth.h"
+#include <Arduino.h>
+#include <Bluetooth.h>
+#include <XBee.h>
+#include <Thread.h>
+#include <ThreadController.h>
 
-bool XBMsgRx = false;
-bool XBMsgStart = false;
-bool BTMsgRx = false;
-bool BTMsgStart = false;
+ThreadController controller = ThreadController();
+//Thread heartbeatThread = Thread();
+//Thread serverThread = Thread();
+//Thread bluetoothThread = Thread();
+Thread uxThread = Thread();
 
-void CheckXB();
-void CheckBT();
-void ProcessMessages();
-void UpdateDisplay();
-
+void ux();
+		            
 void setup()
 {
-	//XB.begin(9600);
-	Bluetooth.setPort(&Serial);
+	DDRB |= 1;
+	Serial.begin(38400);
+	XBee.begin(&Serial1);
+	//Bluetooth.setPort(&Serial);
+	//heartbeatThread.onRun(XBeeClass::heartbeat);
+	//heartbeatThread.setInterval(2000);
+	//serverThread.onRun(XBee.run);
+	//bluetoothThread.onRun(&Bluetooth.run);
+	//uxThread.onRun(&UX.run);
+	uxThread.onRun(ux);
+	uxThread.setInterval(1000);
+	
+	
+	//controller.add(&serverThread);
+	//controller.add(&bluetoothThread);
+	controller.add(&uxThread);
+	//controller.add(&heartbeatThread);
 }
 
 void loop()
 {
-	CheckXB();
-	CheckBT();
-	ProcessMessages();
-	UpdateDisplay();
+	controller.run();
 }
 
-void CheckXB()
+void ux()
 {
-	//if (XB.available() > 0)
-	{
-		//read bytes into packet
-		//set flags
-	}
-}
-
-void CheckBT()
-{
-	//if (BT.available() > 0)
-	{
-		//read bytes into packet
-		//set flags
-	}
-}
-
-void ProcessMessages()
-{
-	//use packets to alter state
-	//send any necessary responses
-}
-
-void UpdateDisplay()
-{
-	//do light stuff here
+	Serial.println(millis());
+	PORTB ^= 1;
+	if(PORTB & 1) XBee.heartbeat();
 }

@@ -38,14 +38,14 @@
 #if (RAMEND < 1000)
 #define SERIAL_TX_BUFFER_SIZE 16
 #else
-#define SERIAL_TX_BUFFER_SIZE 64
+#define SERIAL_TX_BUFFER_SIZE 256
 #endif
 #endif
 #if !defined(SERIAL_RX_BUFFER_SIZE)
 #if (RAMEND < 1000)
 #define SERIAL_RX_BUFFER_SIZE 16
 #else
-#define SERIAL_RX_BUFFER_SIZE 64
+#define SERIAL_RX_BUFFER_SIZE 256
 #endif
 #endif
 #if (SERIAL_TX_BUFFER_SIZE>256)
