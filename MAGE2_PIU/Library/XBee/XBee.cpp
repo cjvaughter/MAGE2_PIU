@@ -9,34 +9,32 @@
 #include "XBee.h"
 
 XBeeClass XBee;
-uint8_t* XBeeClass::Data;
+
+//public
+uint8_t* XBeeClass::rx_data;
 uint8_t* XBeeClass::tx_bfr;
 uint8_t* XBeeClass::tx_data;
+uint8_t XBeeClass::rx_length;
 uint8_t XBeeClass::tx_length;
-uint8_t XBeeClass::DataLength;
-uint8_t XBeeClass::Func;
-uint8_t XBeeClass::ID;
+bool XBeeClass::msgReady;
 
+//private
 HardwareSerial* XBeeClass::_port;
-bool XBeeClass::_msgStatus;
-String XBeeClass::_currentMessage;
 uint8_t XBeeClass::_step;
-uint8_t XBeeClass::_api;
 uint16_t XBeeClass::_length;
-uint64_t XBeeClass::_address;
-uint16_t XBeeClass::_address16;
 uint8_t XBeeClass::_checksum;
 bool XBeeClass::_escape;
 uint8_t XBeeClass::_sum;
 uint8_t XBeeClass::_index;
 
-void XBeeClass::begin(HardwareSerial* port)
+void XBeeClass::init(HardwareSerial* port)
 {
 	_port = port;
-	Serial1.begin(38400);
-	_msgStatus = false;
-	tx_bfr = new uint8_t[256];
-	tx_data = new uint8_t[80];
+	_port->begin(38400);
+	msgReady = false;
+	tx_bfr = new uint8_t[51];
+	tx_data = new uint8_t[32];
+	rx_data = new uint8_t[32];
 	
 	tx_bfr[0] = (Delimiter);
 	tx_bfr[3] = (TX);
@@ -58,23 +56,24 @@ void XBeeClass::begin(HardwareSerial* port)
 
 void XBeeClass::run()
 {
-	
+	if(tx_length != 0)
+	{
+		Encode();
+	}
+	read();
 }
 
 void XBeeClass::heartbeat()
 {
-	tx_bfr[18] = 0;
+	tx_data[0] = 0;
 	tx_length = 1;
 	Encode();
 }
 
-bool XBeeClass::read()
+void XBeeClass::read()
 {
-	if(_port->available())
-	{
-		Decode(_port->read());
-	}
-	return _msgStatus;
+	uint8_t nbytes = (uint8_t)_port->available();
+	while(nbytes--) Decode(_port->read());
 }
 
 void XBeeClass::Decode(uint8_t data)
@@ -92,7 +91,11 @@ void XBeeClass::Decode(uint8_t data)
 	switch (_step)
 	{
 		case 0:
-			if (data == Delimiter) _step++;
+			if (data == Delimiter)
+			{
+				_index = 0;
+				_step++;
+			}
 			break;
 		case 1:
 			_length = (uint8_t)(data << 8);
@@ -103,26 +106,22 @@ void XBeeClass::Decode(uint8_t data)
 			_step++;
 			break;
 		case 3:
-			_api = data;
-			_sum = data;
-			if (_api != RX) _step = 0;
-			else _step++;
+			if (data != RX) _step = 0;
+			else
+			{
+				_sum = data;
+				_step++;
+			}
 			break;
 		case 4: case 5: case 6: case 7:
 		case 8: case 9: case 10: case 11:
 		case 12: case 13: case 14:
 			_sum += data;
 			_step++;
-			break;
-		case 15:
-			Data = new byte[_length - RX_Header];
-			_index = 0;
-			Data[_index++] = data;
-			_sum += data;
-			_step++;
+			msgReady = false; //if you haven't read the message by now, you missed it
 			break;
 		default:
-			Data[_index++] = data;
+			rx_data[_index++] = data;
 			_sum += data;
 			if (_index == _length - RX_Header) _step = 255;
 			break;
@@ -130,7 +129,8 @@ void XBeeClass::Decode(uint8_t data)
 			_checksum = data;
 			if (Check - _sum == _checksum)
 			{
-				_msgStatus = true;
+				rx_length = _index;
+				msgReady = true;
 			}
 			_step = 0;
 			break;
@@ -158,7 +158,8 @@ void XBeeClass::Encode()
 	}
 	tx_bfr[offset++] = ((byte)(Check - sum));
 	
-	Serial1.write(tx_bfr, offset);
+	_port->write(tx_bfr, offset);
+	tx_length = 0;
 }
 
  

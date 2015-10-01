@@ -5,42 +5,73 @@
 #include <ThreadController.h>
 
 ThreadController controller = ThreadController();
-//Thread heartbeatThread = Thread();
-//Thread serverThread = Thread();
-//Thread bluetoothThread = Thread();
+Thread serverThread = Thread();
+Thread heartbeatThread = Thread();
+Thread bluetoothThread = Thread();
 Thread uxThread = Thread();
 
 void ux();
 		            
 void setup()
 {
-	DDRB |= 1;
-	Serial.begin(38400);
-	XBee.begin(&Serial1);
-	//Bluetooth.setPort(&Serial);
-	//heartbeatThread.onRun(XBeeClass::heartbeat);
-	//heartbeatThread.setInterval(2000);
-	//serverThread.onRun(XBee.run);
-	//bluetoothThread.onRun(&Bluetooth.run);
-	//uxThread.onRun(&UX.run);
-	uxThread.onRun(ux);
-	uxThread.setInterval(1000);
+	XBee.init(&Serial1);
+	//Bluetooth.init(&SerialX);
+	//Ux.init();
+	//MIRP.init();
+	DDRB |= 67;
+
+	serverThread.onRun(XBee.run);
+	serverThread.setInterval(1);
+
+	heartbeatThread.onRun(XBee.heartbeat);
+	heartbeatThread.setInterval(2000);
 	
+	//bluetoothThread.onRun(blah blah blah);
+	//bluetoothThread.setInterval(1);
 	
-	//controller.add(&serverThread);
+	//uxThread.onRun(ux);
+	//uxThread.setInterval(1000);
+	
+	controller.add(&serverThread);
+	controller.add(&heartbeatThread);
 	//controller.add(&bluetoothThread);
-	controller.add(&uxThread);
-	//controller.add(&heartbeatThread);
+	//controller.add(&uxThread);
+	//MIRP.start();
+	XBee.tx_data[0] = 1;
+	XBee.tx_data[1] = 0xCC;
+	XBee.tx_data[2] = 0xCC;
+	XBee.tx_length = 3;
 }
 
 void loop()
 {
 	controller.run();
-}
-
-void ux()
-{
-	Serial.println(millis());
-	PORTB ^= 1;
-	if(PORTB & 1) XBee.heartbeat();
+	if(XBee.msgReady)
+	{
+		if(XBee.rx_data[0] == 1)
+		{
+			switch(XBee.rx_data[1])
+			{
+				case 0:
+					PORTB = 64;
+					break;
+				case 1:
+					PORTB = 66;
+					break;
+				case 2:
+					PORTB = 66;
+					break;
+				case 3:
+					PORTB = 2;
+					break;
+				case 4:
+					PORTB = 1;
+					break;
+				case 5:
+					PORTB = 65;
+					break;
+			}
+		}
+		XBee.msgReady = false;
+	}
 }

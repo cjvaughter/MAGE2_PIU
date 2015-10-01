@@ -34,42 +34,27 @@
 #define Coordinator7 0x77
 #define Coordinator8 0xC3
 #define SendChecksum 0xCF
-/*
-public enum MsgFunc : byte
-{
-    Heartbeat,
-    Connect,
-    SentSpell,
-    RecievedSpell,
-};
- */
+
 class XBeeClass
 {
 	public:
-		static void begin(HardwareSerial* port);
+		static void init(HardwareSerial* port);
 		static void run();
 		static void heartbeat();
-		static bool read();
+		static void read();
 		static void Decode(uint8_t data);
 		static void Encode();
-		static long Address;
-		static uint8_t* Data;
+		static uint8_t* rx_data;
 		static uint8_t* tx_bfr;
 		static uint8_t* tx_data;
+		static uint8_t rx_length;
 		static uint8_t tx_length;
-		static uint8_t DataLength;
-		static uint8_t Func;
-		static uint8_t ID;
+		static bool msgReady;
 		
 	private:
 		static HardwareSerial* _port;
-		static bool _msgStatus;
-		static String _currentMessage;
 		static uint8_t _step;
-		static uint8_t _api;
 		static uint16_t _length;
-		static uint64_t _address;
-		static uint16_t _address16;
 		static uint8_t _checksum;
 		static bool _escape;
 		static uint8_t _sum;
