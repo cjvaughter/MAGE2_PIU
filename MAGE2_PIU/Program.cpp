@@ -1,77 +1,76 @@
 #include <Arduino.h>
 #include <Bluetooth.h>
 #include <XBee.h>
-#include <Thread.h>
-#include <ThreadController.h>
 
-ThreadController controller = ThreadController();
-Thread serverThread = Thread();
-Thread heartbeatThread = Thread();
-Thread bluetoothThread = Thread();
-Thread uxThread = Thread();
+enum States
+{
+	Alive,
+	Dead,
+	Stunned,
+	Disconnected,
+	
+	DFU = 0xFF
+};
 
-void ux();
+byte state = Disconnected;
+uint64_t currentTime = 0;
+uint64_t lastTime = 0;
 		            
 void setup()
 {
+	cli();
 	XBee.init(&Serial1);
 	//Bluetooth.init(&SerialX);
 	//Ux.init();
 	//MIRP.init();
-	DDRB |= 67;
-
-	serverThread.onRun(XBee.run);
-	serverThread.setInterval(1);
-
-	heartbeatThread.onRun(XBee.heartbeat);
-	heartbeatThread.setInterval(2000);
-	
-	//bluetoothThread.onRun(blah blah blah);
-	//bluetoothThread.setInterval(1);
-	
-	//uxThread.onRun(ux);
-	//uxThread.setInterval(1000);
-	
-	controller.add(&serverThread);
-	controller.add(&heartbeatThread);
-	//controller.add(&bluetoothThread);
-	//controller.add(&uxThread);
-	//MIRP.start();
-	XBee.tx_data[0] = 1;
-	XBee.tx_data[1] = 0xCC;
-	XBee.tx_data[2] = 0xCC;
-	XBee.tx_length = 3;
+	sei();
 }
 
 void loop()
 {
-	controller.run();
+	currentTime = millis();
+	
+	//XBee transactions 
+	XBee.read();
 	if(XBee.msgReady)
 	{
-		if(XBee.rx_data[0] == 1)
+		switch(XBee.rx_data[0])
 		{
-			switch(XBee.rx_data[1])
-			{
-				case 0:
-					PORTB = 64;
-					break;
-				case 1:
-					PORTB = 66;
-					break;
-				case 2:
-					PORTB = 66;
-					break;
-				case 3:
-					PORTB = 2;
-					break;
-				case 4:
-					PORTB = 1;
-					break;
-				case 5:
-					PORTB = 65;
-					break;
-			}
+			case DFU:
+				state = DFU;
+				break;
 		}
 		XBee.msgReady = false;
+	}
+	if(currentTime - lastTime >= 2000)
+	{
+		XBee.heartbeat();
+		lastTime = currentTime; 
+	}
+	
+	//Bluetooth transactions
+	
+	//Game state
+	switch(state)
+	{
+		case Alive:
+			break;
+		case Dead:
+			break;
+		case Stunned:
+			break;
+		case Disconnected:
+			break;
+		case DFU:
+			cli();
+			EIND = 0x01;	  //load jump address
+			asm volatile (
+			"ldi r31, 0xFE\n" //...
+			"ldi r30, 0x00\n" //...
+			"ser r16\n"	  //set OTA flag
+			"eijmp\n");		  //jump to bootloader
+			break;
+		default:
+			break;
 	}
 }

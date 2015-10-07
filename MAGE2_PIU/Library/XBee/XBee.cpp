@@ -54,15 +54,6 @@ void XBeeClass::init(HardwareSerial* port)
 	tx_bfr[17] = (0); //No options
 }
 
-void XBeeClass::run()
-{
-	if(tx_length != 0)
-	{
-		Encode();
-	}
-	read();
-}
-
 void XBeeClass::heartbeat()
 {
 	tx_data[0] = 0;
@@ -74,6 +65,39 @@ void XBeeClass::read()
 {
 	uint8_t nbytes = (uint8_t)_port->available();
 	while(nbytes--) Decode(_port->read());
+}
+
+void XBeeClass::transparent_mode()
+{
+	enter_at_mode();
+	_port->print("ATAP 0\r");
+	_port->flush();
+	_port->readStringUntil('K');
+	exit_at_mode();
+}
+
+void XBeeClass::api_mode()
+{
+	enter_at_mode();
+	_port->print("ATAP 2\r");
+	_port->flush();
+	_port->readStringUntil('K');
+	exit_at_mode();
+}
+
+void XBeeClass::enter_at_mode()
+{
+	delay(10);
+	_port->print("+++");
+	_port->flush();
+	delay(10);
+	_port->readStringUntil('K');
+}
+
+void XBeeClass::exit_at_mode()
+{
+	_port->write("ATCN\r");
+	_port->flush();
 }
 
 void XBeeClass::Decode(uint8_t data)

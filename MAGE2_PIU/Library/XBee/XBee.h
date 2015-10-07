@@ -39,9 +39,12 @@ class XBeeClass
 {
 	public:
 		static void init(HardwareSerial* port);
-		static void run();
 		static void heartbeat();
 		static void read();
+		static void transparent_mode();
+		static void api_mode();
+		static void enter_at_mode();
+		static void exit_at_mode();
 		static void Decode(uint8_t data);
 		static void Encode();
 		static uint8_t* rx_data;
