@@ -10,6 +10,7 @@
 #define XBEE_h
 
 #include "Arduino.h"
+#include <stdarg.h>
 
 //XBEE API frame definitions
 #define Delimiter 0x7e
@@ -39,6 +40,7 @@ class XBeeClass
 {
 	public:
 		static void init(HardwareSerial* port);
+		static void connect(uint16_t player_id, uint16_t device_id);
 		static void heartbeat();
 		static void read();
 		static void transparent_mode();
@@ -46,16 +48,15 @@ class XBeeClass
 		static void enter_at_mode();
 		static void exit_at_mode();
 		static void Decode(uint8_t data);
-		static void Encode();
+		static void Encode(uint8_t length);
 		static uint8_t* rx_data;
-		static uint8_t* tx_bfr;
 		static uint8_t* tx_data;
 		static uint8_t rx_length;
-		static uint8_t tx_length;
 		static bool msgReady;
 		
 	private:
 		static HardwareSerial* _port;
+		static uint8_t* tx_bfr;
 		static uint8_t _step;
 		static uint16_t _length;
 		static uint8_t _checksum;

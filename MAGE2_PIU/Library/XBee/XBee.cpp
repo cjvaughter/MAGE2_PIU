@@ -12,14 +12,13 @@ XBeeClass XBee;
 
 //public
 uint8_t* XBeeClass::rx_data;
-uint8_t* XBeeClass::tx_bfr;
 uint8_t* XBeeClass::tx_data;
 uint8_t XBeeClass::rx_length;
-uint8_t XBeeClass::tx_length;
 bool XBeeClass::msgReady;
 
 //private
 HardwareSerial* XBeeClass::_port;
+uint8_t* XBeeClass::tx_bfr;
 uint8_t XBeeClass::_step;
 uint16_t XBeeClass::_length;
 uint8_t XBeeClass::_checksum;
@@ -52,13 +51,23 @@ void XBeeClass::init(HardwareSerial* port)
 	tx_bfr[15] = (DefaultAddress16Low);
 	tx_bfr[16] = (0); //Maximum network hops
 	tx_bfr[17] = (0); //No options
+	api_mode();
+}
+
+void XBeeClass::connect(uint16_t player_id, uint16_t device_id)
+{
+	tx_data[0] = 1;
+	tx_data[1] = (byte)(player_id>>8);
+	tx_data[2] = (byte)player_id;
+	tx_data[3] = (byte)(device_id>>8);
+	tx_data[4] = (byte)device_id;
+	Encode(5);
 }
 
 void XBeeClass::heartbeat()
 {
 	tx_data[0] = 0;
-	tx_length = 1;
-	Encode();
+	Encode(1);
 }
 
 void XBeeClass::read()
@@ -72,7 +81,7 @@ void XBeeClass::transparent_mode()
 	enter_at_mode();
 	_port->print("ATAP 0\r");
 	_port->flush();
-	_port->readStringUntil('K');
+	while(_port->read() != 0x0D);
 	exit_at_mode();
 }
 
@@ -80,8 +89,9 @@ void XBeeClass::api_mode()
 {
 	enter_at_mode();
 	_port->print("ATAP 2\r");
+	//_port->print("ATFR\r");
 	_port->flush();
-	_port->readStringUntil('K');
+	while(_port->read() != 0x0D);
 	exit_at_mode();
 }
 
@@ -90,14 +100,14 @@ void XBeeClass::enter_at_mode()
 	delay(10);
 	_port->print("+++");
 	_port->flush();
-	delay(10);
-	_port->readStringUntil('K');
+	while(_port->read() != 0x0D);
 }
 
 void XBeeClass::exit_at_mode()
 {
 	_port->write("ATCN\r");
 	_port->flush();
+	while(_port->read() != 0x0D);
 }
 
 void XBeeClass::Decode(uint8_t data)
@@ -161,16 +171,16 @@ void XBeeClass::Decode(uint8_t data)
     }
 }
 
-void XBeeClass::Encode()
+void XBeeClass::Encode(uint8_t length)
 {
 	byte sum = SendChecksum;
 	
-	uint16_t temp = TX_Header + tx_length;
+	uint16_t temp = TX_Header + length;
 	tx_bfr[1] = ((byte)((temp) >> 8));
 	tx_bfr[2] = ((byte)(temp));
 	
 	byte offset = 18;
-	for(byte i = 0; i < tx_length; i++)
+	for(byte i = 0; i < length; i++)
 	{
 		sum += tx_data[i];
 		if (tx_data[i] == Delimiter || tx_data[i] == Escape || tx_data[i] == XON || tx_data[i] == XOFF)
@@ -183,7 +193,6 @@ void XBeeClass::Encode()
 	tx_bfr[offset++] = ((byte)(Check - sum));
 	
 	_port->write(tx_bfr, offset);
-	tx_length = 0;
 }
 
  
