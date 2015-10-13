@@ -1,16 +1,14 @@
 /*******************************************************************************
 * Name: XBee.h
-* Description: Header file for Digi's XBEE DigiMesh for use on the PIU
+* Description: DigiMesh API Library
 * Author: CJ Vaughter & Jacob Dixon
-* Created: 9/21/2015 2:26:27 PM
-* Updated: 9/29/2015 Rev. A - Jacob Dixon
 *******************************************************************************/
  
 #ifndef XBEE_h
 #define XBEE_h
 
-#include "Arduino.h"
-#include <stdarg.h>
+#include <Arduino.h>
+#include <Debugger.h>
 
 //XBEE API frame definitions
 #define Delimiter 0x7e
@@ -36,33 +34,40 @@
 #define Coordinator8 0xC3
 #define SendChecksum 0xCF
 
+enum XBeeMsg
+{
+	Heartbeat,
+	Connect,
+	
+	DFU = 0xFF
+};
+
 class XBeeClass
 {
 	public:
-		static void init(HardwareSerial* port);
-		static void connect(uint16_t player_id, uint16_t device_id);
-		static void heartbeat();
-		static void read();
-		static void transparent_mode();
-		static void api_mode();
-		static void enter_at_mode();
-		static void exit_at_mode();
-		static void Decode(uint8_t data);
-		static void Encode(uint8_t length);
-		static uint8_t* rx_data;
-		static uint8_t* tx_data;
-		static uint8_t rx_length;
-		static bool msgReady;
+		void init();
+		void connect(uint16_t player_id, uint16_t device_id);
+		void heartbeat();
+		void read();
+		void transparent_mode();
+		void api_mode();
+		void enter_at_mode();
+		void exit_at_mode();
+		void Decode(uint8_t data);
+		void Encode(uint8_t length);
+		uint8_t* rx_data;
+		uint8_t* tx_data;
+		uint8_t rx_length;
+		bool msgReady;
 		
 	private:
-		static HardwareSerial* _port;
-		static uint8_t* tx_bfr;
-		static uint8_t _step;
-		static uint16_t _length;
-		static uint8_t _checksum;
-		static bool _escape;
-		static uint8_t _sum;
-		static uint8_t _index;	
+		uint8_t* tx_bfr;
+		uint8_t _step;
+		uint16_t _length;
+		uint8_t _checksum;
+		bool _escape;
+		uint8_t _sum;
+		uint8_t _index;	
 };
 
 extern XBeeClass XBee;
