@@ -5,203 +5,124 @@
 *******************************************************************************/
 
 #include "Bluetooth.h"
-#include "elapsedMillis.h"
-
-#define DELAY_MS 500 //delay between sending config commands
 
 BluetoothClass Bluetooth;
 
-elapsedMillis tElapsed;
-unsigned int tInterval = 10000; //Bluetooth search time
-
-void BluetoothClass::classicMasterInit()
+void BluetoothClass::init()
 {
-	Serial2.begin(9600);
-	Serial2.println("$$$");
-	delay(DELAY_MS);
-	Serial2.println("SF,1"); //sets to factory defaults
-	delay(DELAY_MS);
-	Serial2.end();
-	Serial2.begin(115200); //factory default BAUD rate
-	Serial2.println("$$$"); //gets into config mode
-	delay(DELAY_MS);
-	Serial2.println("SG,2"); //sets to BT classic mode
-	delay(DELAY_MS);
-	Serial2.println("SM,1"); //sets to master mode
-	delay(DELAY_MS);
-	Serial2.println("SY,4"); //sets TX power to max
-	delay(DELAY_MS);
-	Serial2.println("SU,96"); //set BAUD rate to 9600
-	delay(DELAY_MS);
-	Serial2.end();
-	Serial2.begin(9600);
-}
-void BluetoothClass::classicSlaveInit()
-{
-	Serial.println("Begin of Classic Slave");
-	Serial2.begin(9600);
-	Serial2.println("$$$");
-	delay(DELAY_MS);
-	Serial2.println("SF,1"); //sets to factory defaults
-	delay(DELAY_MS);
-	Serial2.end();
-	Serial2.begin(115200); //factory default BAUD rate
-	Serial2.println("$$$"); //gets into config mode
-	delay(DELAY_MS);
-	Serial2.println("SG,2"); //sets to BT classic mode
-	delay(DELAY_MS);
-	Serial2.println("SM,0"); //sets to slave mode
-	delay(DELAY_MS);
-	Serial2.println("SY,4"); //sets TX power to max
-	delay(DELAY_MS);
-	Serial2.println("SU,96"); //set BAUD rate to 9600
-	delay(DELAY_MS);
-	Serial2.end();
-	Serial2.begin(9600);
-	Serial.println("End of classic slave");
-}
-void BluetoothClass::classicSlaveInitSecurityMode1() //hacked together for prototyping. Need to clean up and always run @ 115200 BAUD
-{
-	Serial.println("Begin of Classic Slave with passkey");
-	//Serial2.begin(9600);
-	Serial2.begin(115200); //factory default BAUD rate
-	Serial2.println("$$$");
-	delay(DELAY_MS);
-	Serial2.println("SF,1"); //sets to factory defaults
-	delay(DELAY_MS);
-	//Serial2.end();
+	BT.begin(115200); //factory default BAUD rate
 	
-	Serial2.println("$$$"); //gets into config mode
-	delay(DELAY_MS);
-	Serial2.println("SG,2"); //sets to BT classic mode
-	delay(DELAY_MS);
-	Serial2.println("SA,4"); //sets to pin code mode
-	delay(DELAY_MS);
-	Serial2.println("SP,1234"); //sets to pin code mode
-	delay(DELAY_MS);
-	Serial2.println("SM,0"); //sets to slave mode
-	delay(DELAY_MS);
-	Serial2.println("SY,4"); //sets TX power to max
-	delay(DELAY_MS);
-	Serial2.println("SU,38"); //set BAUD rate to 9600
-	delay(DELAY_MS);
-	//Serial2.end();
-	//Serial2.begin(38400);
-	Serial.println("End of classic slave");
-}
-void BluetoothClass::BLEMasterInit()
-{
-	Serial2.begin(9600);
-	Serial2.println("$$$");
-	delay(DELAY_MS);
-	Serial2.println("SF,1"); //sets to factory defaults
-	delay(DELAY_MS);
-	Serial2.end();
-	Serial2.begin(115200); //factory default BAUD rate
-	Serial2.println("$$$"); //gets into config mode
-	delay(DELAY_MS);
-	Serial2.println("SG,1"); //sets to BLE
-	delay(DELAY_MS);
-	Serial2.println("SM,1"); //sets to master mode
-	delay(DELAY_MS);
-	Serial2.println("SY,4"); //sets TX power to max
-	delay(DELAY_MS);
-	Serial2.println("SU,96"); //set BAUD rate to 9600
-	delay(DELAY_MS);
-	Serial2.end();
-	Serial2.begin(9600);
-}
-void BluetoothClass::BLESlaveInit()
-{
-	Serial2.begin(9600);
-	Serial2.println("$$$");
-	delay(DELAY_MS);
-	Serial2.println("SF,1"); //sets to factory defaults
-	delay(DELAY_MS);
-	Serial2.end();
-	Serial2.begin(115200); //factory default BAUD rate
-	Serial2.println("$$$"); //gets into config mode
-	delay(DELAY_MS);
-	Serial2.println("SG,1"); //sets to BLE
-	delay(DELAY_MS);
-	Serial2.println("SM,0"); //sets to slave mode
-	delay(DELAY_MS);
-	Serial2.println("SY,4"); //sets TX power to max
-	delay(DELAY_MS);
-	Serial2.println("SU,96"); //set BAUD rate to 9600
-	delay(DELAY_MS);
-	Serial2.end();
-	Serial2.begin(9600);
+	enter_at_mode();
+	command("SN", "MAGE2_PIU"); //sets name
+	command("SG", "2"); //sets to BT classic mode
+	command("SA", "4"); //sets to pin code mode
+	command("SP", "1234"); //sets to pin code mode
+	command("SM", "0"); //sets to slave mode
+	command("SY", "4"); //sets TX power to max
+	exit_at_mode();
+	
+	Debugger.out(BluetoothLibrary, Initialized);
 }
 
-String BluetoothClass::scanClassic(String MACaddr)
+void BluetoothClass::enter_at_mode()
 {
-	Serial2.println("I,10,0"); //per data sheet, this sets up a scan for 10 seconds with no device filtering
-	delay(DELAY_MS);
-	while (tElapsed < tInterval) //this could probably be smarter
-	{
-		MACaddr += Serial2.read();
-	}
-	return MACaddr;
-}
-String BluetoothClass::scanBLE(String MACaddr)
-{
-	Serial2.println("IL,A,0320,0190"); //per data sheet, this sets up a scan for 20 seconds with no device filtering, sets scan rates
-	delay(DELAY_MS);
-	while (tElapsed < tInterval) //this could probably be smarter, MAC address needs to be parsed out still
-	{
-		MACaddr += Serial2.read();
-	}
-	return MACaddr;
-}
-void BluetoothClass::connectClassic(String MACaddr)
-{
-	Serial2.println("C," + MACaddr);
-	delay(DELAY_MS);
-}
-void BluetoothClass::connectBLE(String MACaddr)
-{
-	Serial2.println("C,0," + MACaddr);
-	delay(DELAY_MS);
-}
-void BluetoothClass::disconnect()
-{
-	Serial2.println("K,1");
-	delay(DELAY_MS);
+	BT.print("$$$\r");
+	BT.flush();
+	while(BT.read() != 0x0D);
 }
 
-void BluetoothClass::setName(String name)
+void BluetoothClass::exit_at_mode()
 {
-	Serial2.println("SN," + name);
-	delay(DELAY_MS);
+	BT.print("---\r");
+	BT.flush();
+	while(BT.read() != 0x0D);
 }
 
-void BluetoothClass::reboot()
+void BluetoothClass::command(const char* cmd, const char* data)
 {
-	Serial2.println("R,1");
-	delay(DELAY_MS);
-}
-void BluetoothClass::reset()
-{
-	Serial2.println("SF,1");
-	delay(DELAY_MS);
+	BT.print(cmd);
+	BT.print(",");
+	BT.print(data);
+	BT.print("\r");
+	BT.flush();
+	while(BT.read() != 0x0D);
 }
 
-void BluetoothClass::displayFirmware()
+void BluetoothClass::read()
 {
-	Serial2.println("V");
-	delay(DELAY_MS);
-	while (Serial2.available())
+	uint8_t nbytes = (uint8_t)BT.available();
+	while(nbytes--)
 	{
-		Serial.print(Serial2.read());//<- change this to the correct serial port later
+		uint8_t data = BT.read();
+		
+		switch(_step)
+		{
+		case 0:
+			if (data == BTDelimiter)
+			{
+				msgReady = false;
+				_step++;
+			}
+			break;
+		case 1:
+			rx_func = data;
+			switch(rx_func)
+			{
+			case 0x00: case 0x02: case 0xFF:
+				_step = 255;
+				break;
+			case 0x01:
+				_step = 2;
+				break;
+			case 0x03:
+				_step = 5;
+				break;
+			}
+			break;
+		case 2:
+			device_id = data<<8;
+			break;
+		case 3:
+			device_id |= data;
+			break;
+		case 4:
+			color = data;
+			break;
+		case 5:
+			device_status = data;
+			break;
+		case 255:
+			_checksum = data;
+			if (Check - _sum == _checksum)
+			{
+				if(rx_func != ACK)
+				{
+					msgReady = true;
+					ack();
+				}
+			}
+			_step = 0;
+			break;
+		}
 	}
 }
-void BluetoothClass::displayConfiguration()
+
+void BluetoothClass::write()
 {
-	Serial2.println("X");
-	delay(DELAY_MS);
-	while (Serial2.available())
+	uint8_t sum = tx_func;
+	switch(tx_func)
 	{
-		Serial.print(Serial2.read());//<- change this to the correct serial port later
+		case 0x03:
+			BT.write(device_status);
+			sum += device_status;
+			break;
 	}
+	BT.write(Check - sum);
+}
+
+void BluetoothClass::ack()
+{
+	BT.write(BTDelimiter);
+	BT.write(ACK);
+	BT.write(0x00);
 }

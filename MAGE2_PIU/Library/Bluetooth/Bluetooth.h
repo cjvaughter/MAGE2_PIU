@@ -7,27 +7,32 @@
 #ifndef BLUETOOTH_h
 #define BLUETOOTH_h
 #include <Arduino.h>
+#include <Debugger.h>
 
-//String MACaddr = "";
+#define BTDelimiter 0x3C
+#define ACK 0xFF
+#define Check 0xFF
 
 class BluetoothClass
 {
 	public:
-	void classicMasterInit(); //master (central) config with BT 2.1 mode aka "Classic"
-	void classicSlaveInit(); //slave (peripheral) config with BT 2.1 mode aka "Classic"
-	void classicSlaveInitSecurityMode1(); //for use with legacy devices which require a passkey
-	void BLEMasterInit(); //master (central) config with BT 4.0 mode aka "BLE"
-	void BLESlaveInit(); //slave (peripheral) config with BT 4.0 mode aka "BLE"
-	String scanClassic(String MACaddr); //scans for devices for BT Classic Mode
-	String scanBLE(String MACaddr); // scans for devices using BLE Mode
-	void connectClassic(String MACaddr); //connects to devices using classic mode
-	void connectBLE(String MACaddr);
-	void setName(String name = "");
-	void reboot();
-	void reset(); //restore to factory settings
-	void disconnect();
-	void displayFirmware();
-	void displayConfiguration();
+	void init();
+	void enter_at_mode();
+	void exit_at_mode();
+	void command(const char* cmd, const char* data);
+	void read();
+	void write();
+	uint8_t color;
+	uint16_t device_id;
+	uint8_t rx_func, tx_func;
+	uint8_t device_status;
+	bool msgReady;
+	
+	private:
+	uint8_t _step;
+	uint16_t _sum;
+	uint8_t _checksum;
+	void ack();
 };
 
 extern BluetoothClass Bluetooth;
