@@ -20,7 +20,7 @@ class HapticClass
 		uint8_t _pulseCount;
 		uint16_t _pulseOnTime;
 		uint16_t _pulseOffTime;
-		uint8_t _on;
+		boolean _on;
 		uint64_t _nextTime;
 };
 

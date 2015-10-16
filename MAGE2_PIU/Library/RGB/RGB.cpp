@@ -8,191 +8,198 @@
 
 RGBClass RGB;
 
-//chip addresses
-static const byte LTC3220_ADDR = 0x1C;
-static const byte LTC3220_1_ADDR = 0x1D;
-
-//sub address registers (for each LED)
-static const byte CommandReg = 0x00;
-static const byte LED1R = 0x01;
-static const byte LED1G = 0x02;
-static const byte LED1B = 0x03;
-static const byte LED2R = 0x04;
-static const byte LED2G = 0x05;
-static const byte LED2B = 0x06;
-static const byte LED3R = 0x07;
-static const byte LED3G = 0x08;
-static const byte LED3B = 0x09;
-static const byte LED4R = 0x0A;
-static const byte LED4G = 0x0B;
-static const byte LED4B = 0x0C;
-static const byte TEAMLEDR = 0x0D;
-static const byte TEAMLEDG = 0x0E;
-static const byte TEAMLEDB = 0x0F;
-static const byte POW_LED = 0x10;
-static const byte UNUSED1 = 0x11;
-static const byte UNUSED2 = 0x12;
-static const byte GRAD_BLINK = 0x13;
-
-// Command Reg
-static const byte QuickWrite = 0x01; //forces all registers to data byte value
-static const byte F1X = 0x01; //force into 1x current mode
-static const byte F1P5X = 0x01; //force into 1.5x current mode
-static const byte F2X = 0x01; //force into 2x current mode
-static const byte SHUTDOWN = 0x01; //turns off all LED's
-
-//Gradient and Blinking Reg
-//static byte BlinkRate1 = 0x00; //blinks every .625 seconds for a period of 1.25 seconds
-static const byte GradientRate1 = 0x02; // gradient rate of .24 seconds with a period of .313 seconds
-static const byte GradientRate2 = 0x04; // gradient rate of .48 seconds with a period of .625 seconds
-static const byte GradientRate3 = 0x06; // gradient rate of .96 seconds with a period of 1.25 seconds
-//static byte BlinkRate1withGradiant1 = 0x01; //blinks every .625 seconds for a period of 1.25 seconds with a gradient of .24 seconds (rising and falling)
-//static byte BlinkRate1withGradiant2 = 0x02; //blinks every .625 seconds for a period of 1.25 seconds with a gradient of .48 seconds (rising and falling)
-//static byte BlinkRate1withGradiant3 = 0x03; //blinks every .625 seconds for a period of 1.25 seconds with a gradient of .96 seconds (rising and falling)
-//there are more blink/gradient combos. I just did the first one.
-
-//Data bytes
-static const byte BlinkEnable = 0x40; //add this to data value for brightness
-static const byte GradiantEnable = 0x80; //add this to data value for brightness
-static const byte Brightness100Percent = 0x1F;
-static const byte Brightness90Percent = 0x39;
-static const byte Brightness80Percent = 0x33;
-static const byte Brightness70Percent = 0x2D;
-static const byte Brightness60Percent = 0x26;
-static const byte Brightness50Percent = 0x20;
-static const byte Brightness40Percent = 0x1A;
-static const byte Brightness30Percent = 0x13;
-static const byte Brightness20Percent = 0x0D;
-static const byte Brightness10Percent = 0x06;
-
-
-
-
-
-//Command byte register functions, use only when addressing the command register! (reg addr 0x00)
-void RGBClass::SetPowerLEDOn()
+void RGBClass::init()
 {
-	I2C.writeReg(LTC3220_ADDR,POW_LED,Brightness100Percent);
+	_effectTime = 0;
+	_effectActive = false;
+	_blink = BlinkFast;
+	_grad = GradOff;
+	I2C.writeReg(LTC3220_ADDR, COMMAND_REG, 0);
+	I2C.writeReg(LTC3220_ADDR, GRAD_BLINK_REG, 0);
+	setLed(All, NoColor);
+	setLed(Power, Red);
 }
-void RGBClass::SetPowerLEDOnPulse()
+
+void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t led_state, uint8_t brightness)
 {
-	//write gradient register first
-	I2C.writeReg(LTC3220_ADDR,GradientRate3,GradiantEnable);
-	//might need to wait some time here...
-	int temp = Brightness100Percent + GradiantEnable;
-	I2C.writeReg(LTC3220_ADDR,POW_LED,temp);
+	uint8_t rgb[3];
+	
+	switch(color)
+	{
+		case Red:
+			rgb[0] = brightness;
+			rgb[1] = B_0;
+			rgb[2] = B_0;
+			break;
+		case Orange:
+			rgb[0] = brightness;
+			rgb[1] = brightness/2;
+			rgb[2] = B_0;
+			break;
+		case Yellow:
+			rgb[0] = brightness;
+			rgb[1] = brightness;
+			rgb[2] = B_0;
+			break;
+		case Green:
+			rgb[0] = B_0;
+			rgb[1] = brightness;
+			rgb[2] = B_0;
+			break;
+		case Blue:
+			rgb[0] = B_0;
+			rgb[1] = B_0;
+			rgb[2] = brightness;
+			break;
+		case Purple:
+			rgb[0] = brightness;
+			rgb[1] = B_0;
+			rgb[2] = brightness;
+			break;
+		case NoColor:
+			rgb[0] = B_0;
+			rgb[1] = B_0;
+			rgb[2] = B_0;
+			break;
+	}
+	
+	if(led_state != Normal)
+	{
+		rgb[0] |= led_state;
+		rgb[1] |= led_state;
+		rgb[2] |= led_state;
+	}
+	
+	switch(led)
+	{
+		case Power:
+			if(color == NoColor) rgb[0] = B_0;
+			else rgb[0] = brightness;
+			I2C.writeReg(LTC3220_ADDR, Power, rgb[0]);
+			break;
+		case HealthBar:
+			I2C.writeRegs(LTC3220_ADDR, Health1, rgb, 3);
+			I2C.writeRegs(LTC3220_ADDR, Health2, rgb, 3);
+			I2C.writeRegs(LTC3220_ADDR, Health3, rgb, 3);
+			I2C.writeRegs(LTC3220_ADDR, Health4, rgb, 3);
+			break;
+		case All:
+			I2C.writeRegs(LTC3220_ADDR, Health1, rgb, 3);
+			I2C.writeRegs(LTC3220_ADDR, Health2, rgb, 3);
+			I2C.writeRegs(LTC3220_ADDR, Health3, rgb, 3);
+			I2C.writeRegs(LTC3220_ADDR, Health4, rgb, 3);
+			I2C.writeRegs(LTC3220_ADDR, Team, rgb, 3);
+			I2C.writeReg(LTC3220_ADDR, Power, B_100);
+			break;
+		default:
+			I2C.writeRegs(LTC3220_ADDR, led, rgb, 3);
+			break;
+	}
 }
-void RGBClass::SetRGBLEDColor(String Color, int Brightness, int LED) //note, LED 5 = team LED
+
+void RGBClass::setBlinkRate(uint8_t rate)
 {
-	byte tempBrightness;
-	byte R,G,B;
-	switch(Brightness)
+	_blink = rate;
+	I2C.writeReg(LTC3220_ADDR, GRAD_BLINK_REG, _blink | _grad);
+}
+
+void RGBClass::setGradRate(uint8_t rate)
+{
+	_grad = rate;
+	I2C.writeReg(LTC3220_ADDR, GRAD_BLINK_REG, _blink | _grad);
+}
+
+void RGBClass::setHealth(uint8_t percent)
+{
+	uint8_t diff;
+	_percent = percent;
+	
+	if(percent == 100)
 	{
-		case 100 :
-			tempBrightness = Brightness100Percent;
-			break;
-		case 90 :
-			tempBrightness = Brightness90Percent;
-			break;
-		case 80 :
-			tempBrightness = Brightness80Percent;
-			break;
-		case 70 :
-			tempBrightness = Brightness70Percent;
-			break;
-		case 60 :
-			tempBrightness = Brightness60Percent;
-			break;
-		case 50 :
-			tempBrightness = Brightness50Percent;
-			break;
-		case 40 :
-			tempBrightness = Brightness40Percent;
-			break;
-		case 30 :
-			tempBrightness = Brightness30Percent;
-			break;
-		case 20 :
-			tempBrightness = Brightness20Percent;
-			break;
-		case 10 :
-			tempBrightness = Brightness10Percent;
-			break;
-		default :
-			return;
+		setLed(HealthBar, Green);
 	}
-	switch(LED)
+	else if(percent >= 80)
 	{
-		case 1 : //led 1
-			R = LED1R;
-			G = LED1G;
-			B = LED1B;
-			break;
-		case 2 :
-			R = LED2R;
-			G = LED2G;
-			B = LED2B;
-			break;
-		case 3 :
-			R = LED3R;
-			G = LED3G;
-			B = LED3B;
-			break;
-		case 4 : 
-			R = LED4R;
-			G = LED4G;
-			B = LED4B;
-			break;
-		case 5 :
-			R = TEAMLEDR;
-			G = TEAMLEDG;
-			B = TEAMLEDB;
-			break;
-		default :
-			return;
+		diff = 100 - percent;
+		setLed(Health4, Green, Normal, diff + B_60);
+		setLed(Health3, Green);
+		setLed(Health2, Green);
+		setLed(Health1, Green);
 	}
-	if(Color == "red")
+	else if(percent >= 75)
 	{
-		I2C.writeReg(LTC3220_ADDR,R,tempBrightness);
+		setLed(Health4, Green, Blink, B_50);
+		setLed(Health3, Green);
+		setLed(Health2, Green);
+		setLed(Health1, Green);
 	}
-	else if(Color == "green")
+	else if(percent >= 55)
 	{
-		I2C.writeReg(LTC3220_ADDR,G,tempBrightness);
+		diff = 75 - percent;
+		setLed(Health4, NoColor);
+		setLed(Health3, Green, Normal, diff + B_60);
+		setLed(Health2, Green);
+		setLed(Health1, Green);
 	}
-	else if(Color == "blue")
+	else if(percent >= 50)
 	{
-		I2C.writeReg(LTC3220_ADDR,B,tempBrightness);
+		setLed(Health4, NoColor);
+		setLed(Health3, Green, Blink, B_50);
+		setLed(Health2, Green);
+		setLed(Health1, Green);
 	}
-	else if(Color == "white")
+	else if(percent >= 30)
 	{
-		I2C.writeReg(LTC3220_ADDR,B,tempBrightness);
-		I2C.writeReg(LTC3220_ADDR,G,tempBrightness);
-		I2C.writeReg(LTC3220_ADDR,R,tempBrightness);
+		diff = 50 - percent;
+		setLed(Health4, NoColor);
+		setLed(Health3, NoColor);
+		setLed(Health2, Yellow, Normal, diff + B_60);
+		setLed(Health1, Yellow);
 	}
-	else if(Color == "yellow")
+	else if(percent >= 25)
 	{
-		I2C.writeReg(LTC3220_ADDR,G,tempBrightness);
-		I2C.writeReg(LTC3220_ADDR,R,tempBrightness);
+		setLed(Health4, NoColor);
+		setLed(Health3, NoColor);
+		setLed(Health2, Yellow, Blink, B_50);
+		setLed(Health1, Yellow);
 	}
-	else if(Color == "cyan")
+	else if(percent >= 5)
 	{
-		I2C.writeReg(LTC3220_ADDR,B,tempBrightness);
-		I2C.writeReg(LTC3220_ADDR,G,tempBrightness);
+		diff = 25 - percent;
+		setLed(Health4, NoColor);
+		setLed(Health3, NoColor);
+		setLed(Health2, NoColor);
+		setLed(Health1, Red, Normal, diff + B_60);
 	}
-	else if(Color == "magenta")
+	else if(percent > 0)
 	{
-		I2C.writeReg(LTC3220_ADDR,R,tempBrightness);
-		I2C.writeReg(LTC3220_ADDR,B,tempBrightness);
+		setLed(Health4, NoColor);
+		setLed(Health3, NoColor);
+		setLed(Health2, NoColor);
+		setLed(Health1, Red, Blink, B_50);
 	}
-	else if(Color == "party")
+	else
 	{
-		I2C.writeReg(LTC3220_ADDR,R,tempBrightness);
-		I2C.writeReg(LTC3220_ADDR,B,tempBrightness);
+		setLed(HealthBar, NoColor);
 	}
-	else if(Color == "orange")
+}
+
+void RGBClass::doEffect(uint8_t effect, uint16_t length, uint64_t time)
+{
+	//do blink, fade, whatever here
+	
+	_effectTime = time + length;
+	_effectActive = true;
+}
+
+void RGBClass::run(uint64_t time)
+{
+	if(_effectActive)
 	{
-		I2C.writeReg(LTC3220_ADDR,R,tempBrightness);
-		I2C.writeReg(LTC3220_ADDR,G,Brightness60Percent); //NOTE: This will not scale correctly when red is dimmed. need to fix this
+		if(time >= _effectTime)
+		{
+			setHealth(_percent);
+			_effectActive = false;
+		}
 	}
-	//plan to add more colors as necessary
 }

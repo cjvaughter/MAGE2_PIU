@@ -158,6 +158,7 @@
       <Value>../Library/I2C</Value>
       <Value>../Library/RGB</Value>
       <Value>../Library/SD</Value>
+      <Value>../Library/Settings</Value>
       <Value>../Library/SPI</Value>
       <Value>../Library/Wire</Value>
       <Value>../Library/Wire/utility</Value>
@@ -315,9 +316,6 @@
     <Compile Include="Library\Bluetooth\Bluetooth.h">
       <SubType>compile</SubType>
     </Compile>
-    <Compile Include="Library\Bluetooth\elapsedMillis.h">
-      <SubType>compile</SubType>
-    </Compile>
     <Compile Include="Library\Debugger\Debugger.cpp">
       <SubType>compile</SubType>
     </Compile>
@@ -384,6 +382,12 @@
     <Compile Include="Library\SD\utility\SdVolume.cpp">
       <SubType>compile</SubType>
     </Compile>
+    <Compile Include="Library\Settings\Settings.cpp">
+      <SubType>compile</SubType>
+    </Compile>
+    <Compile Include="Library\Settings\Settings.h">
+      <SubType>compile</SubType>
+    </Compile>
     <Compile Include="Library\SPI\SPI.cpp">
       <SubType>compile</SubType>
     </Compile>
@@ -420,6 +424,7 @@
     <Folder Include="Library\Haptic" />
     <Folder Include="Library\I2C" />
     <Folder Include="Library\Debugger" />
+    <Folder Include="Library\Settings" />
     <Folder Include="Library\RGB" />
     <Folder Include="Library\XBee" />
     <Folder Include="Library\SD" />

@@ -58,14 +58,14 @@ class XBeeClass
 		uint8_t* rx_data;
 		uint8_t* tx_data;
 		uint8_t rx_length;
-		bool msgReady;
+		boolean msgReady;
 		
 	private:
 		uint8_t* tx_bfr;
 		uint8_t _step;
 		uint16_t _length;
 		uint8_t _checksum;
-		bool _escape;
+		boolean _escape;
 		uint8_t _sum;
 		uint8_t _index;	
 };

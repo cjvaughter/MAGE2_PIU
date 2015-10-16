@@ -3,7 +3,7 @@
 #include <Bluetooth.h>
 #include <XBee.h>
 #include <RGB.h>
-#include <SD.h>
+#include <Settings.h>
 #include <Haptic.h>
 
 #define SW_VER_MAJ 0
@@ -17,25 +17,32 @@ enum States
 };
 
 byte state = Dead;
-byte connected = true;
+boolean connected = true;
 uint64_t currentTime = 0;
 uint64_t nextTime = 0;
 uint16_t player_id = 0;     
-
-File configFile;
-File outputFile;
 			    
 void setup()
 {
-	sei();
-	
-	//load sd settings
-	
+	RGB.init();
 	Debugger.init();
+	
+	if(Settings.init()) 
+	{
+		Settings.read();
+		player_id = Settings.player_id;
+		Debugger.enabled = Settings.debugEnabled;
+	}
+	else
+	{
+		RGB.setLed(All, Red);
+		exit(1);
+	}
+	
+	
 	//XBee.init();
 	//Bluetooth.init();
 	Haptic.init();
-	//RGB.init();
 	//MIRP.init();
 	
 	Debugger.out(MainProgram, Initialized);
@@ -67,6 +74,9 @@ void loop()
 				break;
 			case DFU:
 				Debugger.out(MainProgram, "Rebooting in DFU mode...");
+				RGB.setBlinkRate();
+				RGB.setLed(All, NoColor);
+				RGB.setLed(Power, Red, Blink);
 				XBee.transparent_mode();
 				cli();
 				EIND = 1;
@@ -102,56 +112,5 @@ void loop()
 	
 	//UX
 	Haptic.run(currentTime);
-	//RGB stuff	
+	RGB.run(currentTime);
 }
-
-/*
-	if(userBeginningEntry == "sd")
-	{
-		Serial.println("==========Begin SD card test.==========");
-		delay(500);
-		Serial.println("Initializing SD Card...");
-		if(!SD.begin(53)) //53 = chip select pin
-		{
-			Serial.println("Initialization of SD card failed! Please check SD card and restart device.");
-			while(1==1);
-		}
-		Serial.println("Initialization done.");
-		
-		configFile = SD.open("PIUconfg.txt", FILE_READ);
-		if(configFile)
-		{
-			Serial.println("Configuration file opened.\nReading in Configurations...\n");
-			while(configFile.available() != 0) //now print all info in file to console
-			{
-				Serial.write(configFile.read());
-			}
-			configFile.close();
-		}
-		else //file could not open
-		{
-			Serial.println("Error opening PIU configuration file 'PIUconfg.txt'. Please make sure the file exists and is in the root directory, and restart device.");
-			while(1==1);
-		}
-		
-		//open command will create file if it does not already exist
-		outputFile = SD.open("PIUout.txt", FILE_WRITE);
-		if(outputFile)
-		{
-			Serial.println("\nWrite something to the PIU output file.");
-			Serial.flush();
-			while(!Serial.available());
-			SDUserInput = Serial.readStringUntil('\n');
-			outputFile.println(SDUserInput);
-			outputFile.close();
-			Serial.println("Written to SD Card.");
-			Serial.println("Now printing contents of the PIU output file.");
-			outputFile = SD.open("PIUout.txt", FILE_READ);
-			while(outputFile.available() != 0) //now print all info in file to console
-			{
-				Serial.write(outputFile.read());
-			}
-			outputFile.close();
-		}
-	}
-*/

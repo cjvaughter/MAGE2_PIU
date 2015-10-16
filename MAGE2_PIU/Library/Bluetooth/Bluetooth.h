@@ -6,6 +6,7 @@
 
 #ifndef BLUETOOTH_h
 #define BLUETOOTH_h
+
 #include <Arduino.h>
 #include <Debugger.h>
 
@@ -26,7 +27,7 @@ class BluetoothClass
 	uint16_t device_id;
 	uint8_t rx_func, tx_func;
 	uint8_t device_status;
-	bool msgReady;
+	boolean msgReady;
 	
 	private:
 	uint8_t _step;
