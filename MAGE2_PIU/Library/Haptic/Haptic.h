@@ -6,18 +6,22 @@
 
 #ifndef HAPTIC_h
 #define HAPTIC_h
+
 #include <Arduino.h>
 
 class HapticClass
 {
 	public:
-		void init(uint8_t gpioPin);
-		void pulseMotor(uint8_t pulseCount, uint8_t pulseLength, uint8_t pulseTimeOff);
+		void init();
+		void pulse(uint8_t pulseCount, uint16_t pulseOnTime, uint16_t pulseOffTime);
+		void run(uint64_t time);
 	private:
-		uint8_t gpioPin;
-		uint8_t pulseCount;
-		uint8_t pulseLength;
-		uint8_t pulseTimeOff;
+		uint8_t _pulse;
+		uint8_t _pulseCount;
+		uint16_t _pulseOnTime;
+		uint16_t _pulseOffTime;
+		uint8_t _on;
+		uint64_t _nextTime;
 };
 
 extern HapticClass Haptic;

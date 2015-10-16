@@ -34,7 +34,8 @@ void setup()
 	Debugger.init();
 	//XBee.init();
 	//Bluetooth.init();
-	//Ux.init();
+	Haptic.init();
+	//RGB.init();
 	//MIRP.init();
 	
 	Debugger.out(MainProgram, Initialized);
@@ -62,6 +63,7 @@ void loop()
 			case Connect:
 				state = Alive;
 				connected = true;
+				Haptic.pulse(2, 50, 100);
 				break;
 			case DFU:
 				Debugger.out(MainProgram, "Rebooting in DFU mode...");
@@ -97,6 +99,10 @@ void loop()
 		}
 		Bluetooth.msgReady = false;
 	}
+	
+	//UX
+	Haptic.run(currentTime);
+	//RGB stuff	
 }
 
 /*
