@@ -14,11 +14,11 @@ class I2CClass
 {
 	public:
 		void begin();
-		void writeReg(byte address, byte reg, byte data);
-		void writeRegs(byte address, byte reg, byte *buffer, byte len);
-		byte readReg(byte address, byte reg);
-		void readRegs(byte address, byte reg, byte *buffer, byte len);
-		void command(byte address, byte reg);
+		uint8_t writeReg(uint8_t address, uint8_t reg, uint8_t data);
+		void writeRegs(uint8_t address, uint8_t reg, uint8_t *buffer, uint8_t len);
+		uint8_t readReg(uint8_t address, uint8_t reg);
+		void readRegs(uint8_t address, uint8_t reg, uint8_t *buffer, uint8_t len);
+		uint8_t command(uint8_t address, uint8_t reg);
 };
 
 extern I2CClass I2C;

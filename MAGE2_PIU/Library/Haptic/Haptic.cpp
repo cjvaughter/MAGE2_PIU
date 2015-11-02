@@ -10,7 +10,7 @@ HapticClass Haptic;
 
 void HapticClass::init()
 {
-	DDRB |= 0x10;
+	DDRH |= 0x20;
 }
 
 void HapticClass::pulse(uint8_t pulseCount, uint16_t pulseOnTime, uint16_t pulseOffTime) //pulse length and pulse time off are in milliseconds
@@ -31,14 +31,14 @@ void HapticClass::run(uint64_t time)
 		{
 			if(_on)
 			{
-				PORTB &= ~(0x10);
+				PORTH &= ~(0x20);
 				_nextTime = time + _pulseOffTime;
 				_on = false;
 				_pulse++;
 			}
 			else
 			{
-				PORTB |= 0x10;
+				PORTH |= 0x20;
 				_nextTime = time + _pulseOnTime;
 				_on = true;
 			}

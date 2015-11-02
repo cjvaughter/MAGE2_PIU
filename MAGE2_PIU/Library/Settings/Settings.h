@@ -10,13 +10,13 @@
 #include <Arduino.h>
 #include <SD.h>
 
-#define SDPin 53
+#define SDPin 10
 
 class SettingsClass
 {
 	public:
 		boolean init();
-		void read();
+		boolean read();
 		uint16_t player_id;
 		boolean debugEnabled;
 	private:

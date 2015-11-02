@@ -11,6 +11,7 @@
 #include <I2C.h>
 
 #define LTC3220_ADDR 0x1C
+#define LTC3220_1_ADDR 0x1D
 
 #define COMMAND_REG 0x00
 #define GRAD_BLINK_REG 0x13
@@ -97,6 +98,7 @@ class RGBClass
 		void doEffect(uint8_t effect, uint16_t length, uint64_t time);
 		void run(uint64_t time);
 	private:
+		uint8_t _address;
 		uint8_t _blink;
 		uint8_t _grad;
 		uint8_t _percent;

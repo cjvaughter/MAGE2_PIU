@@ -38,6 +38,11 @@ enum XBeeMsg
 {
 	Heartbeat,
 	Connect,
+	Disconnect,
+	Health,
+	State,
+	ReceivedSpell,
+	SentSpell,
 	
 	DFU = 0xFF
 };

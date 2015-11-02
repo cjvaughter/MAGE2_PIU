@@ -32,7 +32,7 @@ void XBeeClass::init()
 	tx_bfr[15] = (DefaultAddress16Low);
 	tx_bfr[16] = (0); //Maximum network hops
 	tx_bfr[17] = (0); //No options
-	api_mode();
+	//api_mode();
 	Debugger.out(XBeeLibrary, Initialized);
 }
 
