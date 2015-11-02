@@ -48,7 +48,7 @@ void BluetoothClass::command(const char* cmd, const char* data)
 	while(BT.read() != 0x0D);
 }
 
-void BluetoothClass::read()
+void BluetoothClass::run()
 {
 	uint8_t nbytes = (uint8_t)BT.available();
 	while(nbytes--)
@@ -81,15 +81,19 @@ void BluetoothClass::read()
 			break;
 		case 2:
 			device_id = data<<8;
+			_step++;
 			break;
 		case 3:
 			device_id |= data;
+			_step++;
 			break;
 		case 4:
 			color = data;
+			_step = 255;
 			break;
 		case 5:
 			device_status = data;
+			_step++;
 			break;
 		case 255:
 			_checksum = data;

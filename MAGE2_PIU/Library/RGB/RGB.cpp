@@ -27,9 +27,11 @@ void RGBClass::init()
 	setLed(Power, Red);
 }
 
-void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t led_state, uint8_t brightness)
+void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t brightness, uint8_t led_state)
 {
 	uint8_t rgb[3];
+	uint8_t calibratedBrightness = brightness/6;
+	if(calibratedBrightness == 0) calibratedBrightness = 1;
 	
 	switch(color)
 	{
@@ -40,51 +42,39 @@ void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t led_state, uint8_t bri
 			break;
 		case Orange:
 			rgb[0] = brightness;
-			rgb[1] = brightness/12;
-			if(rgb[1] == 0)
-			{
-				rgb[0] = 12;
-				rgb[1] = 1;
-			}
+			rgb[1] = calibratedBrightness / 2;
 			rgb[2] = B_0;
+			if(rgb[1] == 0) rgb[1] = 1;
 			break;
 		case Yellow:
 			rgb[0] = brightness;
-			rgb[1] = brightness/6;
-			if(rgb[1] == 0)
-			{
-				rgb[0] = 6;
-				rgb[1] = 1;
-			}
+			rgb[1] = calibratedBrightness;
 			rgb[2] = B_0;
 			break;
 		case Green:
 			rgb[0] = B_0;
-			rgb[1] = brightness/6;
-			if(rgb[1] == 0)
-			{
-				rgb[1] = 1;
-			}
+			rgb[1] = calibratedBrightness;
 			rgb[2] = B_0;
 			break;
 		case Blue:
 			rgb[0] = B_0;
 			rgb[1] = B_0;
-			rgb[2] = brightness/6;
-			if(rgb[2] == 0)
-			{
-				rgb[2] = 1;
-			}
+			rgb[2] = calibratedBrightness;
+			break;
+		case Cyan:
+			rgb[0] = B_0;
+			rgb[1] = calibratedBrightness;
+			rgb[2] = calibratedBrightness;
 			break;
 		case Purple:
 			rgb[0] = brightness;
 			rgb[1] = B_0;
-			rgb[2] = brightness/6;
-			if(rgb[2] == 0)
-			{
-				rgb[0] = 6;
-				rgb[2] = 1;
-			}
+			rgb[2] = calibratedBrightness;
+			break;
+		case White:
+			rgb[0] = brightness;
+			rgb[1] = calibratedBrightness;
+			rgb[2] = calibratedBrightness;
 			break;
 		case NoColor:
 			rgb[0] = B_0;
@@ -138,103 +128,151 @@ void RGBClass::setGradRate(uint8_t rate)
 
 void RGBClass::setHealth(uint8_t percent)
 {
+	_health = percent;
+}
+
+void RGBClass::showHealth()
+{
 	uint8_t diff;
-	_percent = percent;
-	
-	if(percent == 100)
+	if(_health == 100)
 	{
-		setLed(HealthBar, Green, Normal, B_50);
+		setLed(HealthBar, Green);
 	}
-	else if(percent == 255)
+	else if(_health >= 75)
 	{
-		setLed(HealthBar, NoColor, Normal, B_0);
+		diff = 100 - _health;
+		diff = 26 - diff;
+		setLed(Health4, Green, (uint8_t)((float)diff * 2.42));
+		setLed(Health3, Green);
+		setLed(Health2, Green);
+		setLed(Health1, Green);
 	}
-	else if(percent >= 80)
+	else if(_health >= 50)
 	{
-		diff = 100 - percent;
-		diff = 21 - diff;
-		setLed(Health4, Green, Normal, (uint8_t)((float)diff * 1.6));
-		setLed(Health3, Green, Normal, B_50);
-		setLed(Health2, Green, Normal, B_50);
-		setLed(Health1, Green, Normal, B_50);
-	}
-	else if(percent >= 75)
-	{
-		setLed(Health4, Green, Blink, 1);
-		setLed(Health3, Green, Normal, B_50);
-		setLed(Health2, Green, Normal, B_50);
-		setLed(Health1, Green, Normal, B_50);
-	}
-	else if(percent >= 55)
-	{
-		diff = 75 - percent;
-		diff = 21 - diff;
+		diff = 75 - _health;
+		diff = 26 - diff;
 		setLed(Health4, NoColor);
-		setLed(Health3, Green, Normal, (uint8_t)((float)diff * 1.6));
-		setLed(Health2, Green, Normal, B_50);
-		setLed(Health1, Green, Normal, B_50);
+		setLed(Health3, Green, (uint8_t)((float)diff * 2.42));
+		setLed(Health2, Green);
+		setLed(Health1, Green);
 	}
-	else if(percent >= 50)
+	else if(_health >= 25)
 	{
-		setLed(Health4, NoColor);
-		setLed(Health3, Green, Blink, 1);
-		setLed(Health2, Green, Normal, B_50);
-		setLed(Health1, Green, Normal, B_50);
-	}
-	else if(percent >= 30)
-	{
-		diff = 50 - percent;
-		diff = 21 - diff;
+		diff = 50 - _health;
+		diff = 26 - diff;
 		setLed(Health4, NoColor);
 		setLed(Health3, NoColor);
-		setLed(Health2, Yellow, Normal, (uint8_t)((float)diff * 1.6));
-		setLed(Health1, Yellow, Normal, B_50);
+		setLed(Health2, Green, (uint8_t)((float)diff * 2.42));
+		setLed(Health1, Green);
 	}
-	else if(percent >= 25)
+	else if(_health > 0)
 	{
-		setLed(Health4, NoColor);
-		setLed(Health3, NoColor);
-		setLed(Health2, Yellow, Blink, 1);
-		setLed(Health1, Yellow, Normal, B_50);
-	}
-	else if(percent >= 5)
-	{
-		diff = 25 - percent;
-		diff = 21 - diff;
+		diff = 25 - _health;
+		diff = 26 - diff;
 		setLed(Health4, NoColor);
 		setLed(Health3, NoColor);
 		setLed(Health2, NoColor);
-		setLed(Health1, Red, Normal, (uint8_t)((float)diff * 1.6));
-	}
-	else if(percent > 0)
-	{
-		setLed(Health4, NoColor);
-		setLed(Health3, NoColor);
-		setLed(Health2, NoColor);
-		setLed(Health1, Red, Blink, 1);
+		setLed(Health1, Green, (uint8_t)((float)diff * 2.42));
 	}
 	else
 	{
-		setLed(HealthBar, Red, Normal, B_50);
+		setLed(HealthBar, Red);
 	}
 }
 
-void RGBClass::doEffect(uint8_t effect, uint16_t length, uint64_t time)
+void RGBClass::setDirection(uint8_t color, uint8_t direction, uint64_t time, boolean stunned)
 {
-	//do blink, fade, whatever here
-	
-	_effectTime = time + length;
+	switch(direction)
+	{
+		case Front:
+			setLed(Health4, color);
+			setLed(Health3, Red);
+			setLed(Health2, Red);
+			setLed(Health4, color);
+			break;
+		case Back:
+			setLed(Health4, Red);
+			setLed(Health3, color);
+			setLed(Health2, color);
+			setLed(Health1, Red);
+			break;
+		case Left:
+			setLed(Health4, color);
+			setLed(Health3, color);
+			setLed(Health2, color);
+			setLed(Health1, Red);
+			break;
+		case Right:
+			setLed(Health4, Red);
+			setLed(Health3, color);
+			setLed(Health2, color);
+			setLed(Health1, color);
+			break;
+		case NoDirection:
+			setLed(HealthBar, Red);
+			break;
+	}
+	_stunned = stunned;
+	_directionActive = true;
+	_directionTime = time + 500;
+}
+
+void RGBClass::setEffect(uint8_t color)
+{
+	_effectColor = color;
+}
+
+void RGBClass::doEffect(uint64_t time)
+{
+	if(_effectColor == NoColor)
+	{
+		_effectActive = false;
+		return;
+	}
 	_effectActive = true;
+	_effectToggle = false;
+	_effectTime = time;
 }
 
 void RGBClass::run(uint64_t time)
 {
-	if(_effectActive)
+	if(_directionActive)
+	{
+		if(time >= _directionTime)
+		{
+			if(_stunned)
+			{
+				setLed(HealthBar, Blue);
+			}
+			else
+			{
+				setHealth(_health);
+			}
+			_directionActive = false;
+		}
+	}
+	else if(_effectActive)
 	{
 		if(time >= _effectTime)
 		{
-			setHealth(_percent);
-			_effectActive = false;
+			if(_effectToggle)
+			{
+				if(_stunned)
+				{
+					setLed(HealthBar, Blue);
+				}
+				else
+				{
+					setHealth(_health);
+				}
+				_effectToggle = false;
+			}
+			else
+			{
+				setLed(Health4, _effectColor);
+				_effectToggle = true;
+			}
+			_effectTime = time + 250;
 		}
 	}
 }

@@ -13,7 +13,7 @@ class HapticClass
 {
 	public:
 		void init();
-		void pulse(uint8_t pulseCount, uint16_t pulseOnTime, uint16_t pulseOffTime);
+		void pulse(uint8_t pulseCount, uint16_t pulseOnTime, uint16_t pulseOffTime = 0);
 		void run(uint64_t time);
 	private:
 		uint8_t _pulse;

@@ -41,6 +41,8 @@ enum XBeeMsg
 	Disconnect,
 	Health,
 	State,
+	Effect,
+	Update,
 	ReceivedSpell,
 	SentSpell,
 	
@@ -53,7 +55,8 @@ class XBeeClass
 		void init();
 		void connect(uint16_t player_id, uint16_t device_id);
 		void heartbeat();
-		void read();
+		void run(uint64_t time);
+		uint8_t nextByte();
 		void transparent_mode();
 		void api_mode();
 		void enter_at_mode();
@@ -64,6 +67,7 @@ class XBeeClass
 		uint8_t* tx_data;
 		uint8_t rx_length;
 		boolean msgReady;
+		boolean connected;
 		
 	private:
 		uint8_t* tx_bfr;
@@ -72,7 +76,10 @@ class XBeeClass
 		uint8_t _checksum;
 		boolean _escape;
 		uint8_t _sum;
-		uint8_t _index;	
+		uint8_t _index;
+		uint8_t _msg_index;	
+		uint64_t currentTime;
+		uint64_t nextTime;
 };
 
 extern XBeeClass XBee;

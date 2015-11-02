@@ -11,7 +11,10 @@ XBeeClass XBee;
 void XBeeClass::init()
 {
 	XB.begin(38400);
+	connected = false;
+	nextTime = 0;
 	msgReady = false;
+	_msg_index = 0;
 	tx_bfr = new uint8_t[51];
 	tx_data = new uint8_t[32];
 	rx_data = new uint8_t[32];
@@ -54,10 +57,27 @@ void XBeeClass::heartbeat()
 	Debugger.out(XBeeLibrary, "Heartbeat");
 }
 
-void XBeeClass::read()
+void XBeeClass::run(uint64_t time)
 {
+	currentTime = time;
+	if(connected)
+	{
+		if(currentTime >= nextTime)
+		{
+			heartbeat();
+			nextTime = currentTime + 2000;
+		}
+	}
+	
 	uint8_t nbytes = (uint8_t)XB.available();
 	while(nbytes--) Decode(XB.read());
+}
+
+uint8_t XBeeClass::nextByte()
+{
+	uint8_t data = rx_data[_msg_index++];
+	if(_msg_index >= rx_length) msgReady = false;
+	return data;
 }
 
 void XBeeClass::transparent_mode()
@@ -181,4 +201,5 @@ void XBeeClass::Encode(uint8_t length)
 	XB.write(tx_bfr, offset);
 	
 	tx_data[length] = '\0';
+	nextTime = currentTime + 2000;
 }

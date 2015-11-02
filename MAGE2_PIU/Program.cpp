@@ -13,24 +13,27 @@
 enum States
 {
 	Alive,
-	Dead,
+	Damaged,
 	Stunned,
+	Healed,
+	Dead,
 };
 
 uint8_t state = Dead;
-uint8_t health = 0;
-boolean connected = false;
 uint64_t currentTime = 0;
 uint64_t nextTime = 0;
-uint16_t player_id = 0;     			    
+uint16_t player_id = 0;
+uint8_t team = 0;     			    
 uint8_t msg_index = 0;
 
 boolean d_pressed = false;
 boolean s_pressed = false;
 boolean h_pressed = false;
 uint8_t unique = 0;
+uint8_t lastDirection = 0;
 	
 void Error(const char* message);	
+void testButtons();
 	
 void setup()
 {
@@ -64,6 +67,7 @@ void setup()
 	Debugger.out(MainProgram, Initialized);
 	XBee.connect(player_id, 0xEEEE);
 	
+	//test buttons
 	DDRK |= 0xE0;
 	PORTK |= 0xE0;
 }
@@ -73,55 +77,56 @@ void loop()
 	currentTime = millis();
 	
 	//XBee transactions 
-	if(connected)
-	{
-		if(currentTime >= nextTime)
-		{
-			XBee.heartbeat();
-			nextTime = currentTime + 2000;
-		}
-	}
-
-	XBee.read();
+	XBee.run(currentTime);
 	if(XBee.msgReady)
 	{
-		switch(XBee.rx_data[msg_index++])
+		switch(XBee.nextByte())
 		{	
 			case Connect:
-				health = 0;
-				RGB.setHealth(0);
-				connected = true;
+				XBee.connected = true;
+				team = XBee.nextByte();
 				Haptic.pulse(2, 50, 100);
-				msg_index++;
 				break;
 			case Disconnect:
-				RGB.setHealth(255);
-				connected = false;
+				XBee.connected = false;
+				RGB.setLed(HealthBar, NoColor);
 				break;
 			case Health:
-				health = XBee.rx_data[msg_index++];
-				RGB.setHealth(health);
+				RGB.setHealth(XBee.rx_data[msg_index++]);
 				break;
 			case State:
-				state = XBee.rx_data[msg_index++];
+				state = XBee.nextByte();
+				if (XBee.nextByte() == 1) lastDirection = NoDirection;
+				break;
+			case Effect:
+				RGB.setEffect(XBee.nextByte());
+				break;
+			case Update:
+				
 				switch(state)
 				{
 					case Alive:
-						RGB.setHealth(health);
-						//solid team led
-						//tell weapon
+						RGB.showHealth();
 						break;
-					case Dead:
-						//team led off
-						//tell weapon
+					case Damaged:
+						RGB.setDirection(NoColor, lastDirection, currentTime);
+						Haptic.pulse(1, 100, 100);
 						break;
 					case Stunned:
-						RGB.setLed(HealthBar, Blue, Normal, B_50);
-						//blink team led
-						//tell weapon
+						RGB.setDirection(Blue, lastDirection, currentTime, true);
+						Haptic.pulse(4, 50, 50);
+						break;
+					case Healed:
+						RGB.setDirection(Green, lastDirection, currentTime);
+						Haptic.pulse(2, 25, 125);
+						break;
+					case Dead:
+						RGB.setLed(HealthBar, Red);
+						Haptic.pulse(1, 400, 100);
 						break;
 				}
-				//tell weapon our state
+				RGB.doEffect(currentTime);
+				//update weapon
 				break;
 			case DFU:
 				Debugger.out(MainProgram, "Rebooting in DFU mode...");
@@ -139,18 +144,13 @@ void loop()
 				break;
 			default:
 				Debugger.out(MainProgram, "Unrecognized XBee message");
-				msg_index = 255;
+				XBee.msgReady = false;
 				break;
-		}
-		if(msg_index >= XBee.rx_length)
-		{
-			msg_index = 0;
-			XBee.msgReady = false;
 		}
 	}
 	
 	//Bluetooth transactions
-	Bluetooth.read();
+	Bluetooth.run();
 	if(Bluetooth.msgReady)
 	{
 		switch(Bluetooth.rx_func)
@@ -170,6 +170,18 @@ void loop()
 	Haptic.run(currentTime);
 	RGB.run(currentTime);
 	
+	testButtons();
+}
+
+void Error(const char* message)
+{
+	RGB.setLed(All, Red, Blink, B_50);
+	Debugger.out(MainProgram, message);
+	exit(1);
+}
+
+void testButtons()
+{
 	if((PINK & 0x20) == 0 && !d_pressed)
 	{
 		delay(5);
@@ -189,6 +201,7 @@ void loop()
 			Debugger.out(XBeeLibrary, MsgTX, "Spell Received");
 			d_pressed = true;
 			unique++;
+			lastDirection = Front;
 		}
 	}
 	else if(d_pressed && ((PINK & 0x20) != 0))
@@ -215,6 +228,7 @@ void loop()
 			Debugger.out(XBeeLibrary, MsgTX, "Spell Received");
 			s_pressed = true;
 			unique++;
+			lastDirection = Back;
 		}
 	}
 	else if(s_pressed && ((PINK & 0x40) != 0))
@@ -241,17 +255,11 @@ void loop()
 			Debugger.out(XBeeLibrary, MsgTX, "Spell Received");
 			h_pressed = true;
 			unique++;
+			lastDirection = Right;
 		}
 	}
 	else if(h_pressed && ((PINK & 0x80) != 0))
 	{
 		h_pressed = false;
 	}
-}
-
-void Error(const char* message)
-{
-	RGB.setLed(All, Red, Blink, B_50);
-	Debugger.out(MainProgram, message);
-	exit(1);
 }

@@ -48,9 +48,12 @@ enum Colors
 	Yellow,
 	Green,
 	Blue,
+	Cyan,
 	Purple,
+	White,
 	NoColor = 0xFF,
 };
+
 
 enum LEDs
 {
@@ -87,23 +90,41 @@ enum GradRate
 	GradSlow   = 0x06,	
 };
 
+enum HitDirection
+{
+	Front,
+	Back,
+	Left,
+	Right,
+	NoDirection = 0xFF,
+};
+
 class RGBClass
 {
 	public:
 		void init();
-		void setLed(uint8_t led, uint8_t color, uint8_t led_state = Normal, uint8_t brightness = 100);
+		void setLed(uint8_t led, uint8_t color, uint8_t brightness = B_100, uint8_t led_state = Normal);
 		void setBlinkRate(uint8_t rate = BlinkFast);
 		void setGradRate(uint8_t rate = GradOff);
 		void setHealth(uint8_t percent);
-		void doEffect(uint8_t effect, uint16_t length, uint64_t time);
+		void showHealth();
+		void setDirection(uint8_t color, uint8_t direction, uint64_t time, boolean stunned = false);
+		void blinkEffect(uint8_t color);
+		void setEffect(uint8_t color);
+		void doEffect(uint64_t time);
 		void run(uint64_t time);
 	private:
 		uint8_t _address;
 		uint8_t _blink;
 		uint8_t _grad;
-		uint8_t _percent;
+		uint8_t _health;
+		uint64_t _directionTime;
+		boolean _directionActive;
+		boolean _stunned;
 		uint64_t _effectTime;
 		boolean _effectActive;
+		boolean _effectToggle;
+		uint8_t _effectColor;
 };
 
 extern RGBClass RGB;

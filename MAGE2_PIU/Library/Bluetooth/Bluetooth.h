@@ -21,7 +21,7 @@ class BluetoothClass
 	void enter_at_mode();
 	void exit_at_mode();
 	void command(const char* cmd, const char* data);
-	void read();
+	void run();
 	void write();
 	uint8_t color;
 	uint16_t device_id;
