@@ -10,12 +10,13 @@ HapticClass Haptic;
 
 void HapticClass::init()
 {
-	DDRH |= 0x20;
+	DDRF |= 0x03;
 }
 
-void HapticClass::pulse(uint8_t pulseCount, uint16_t pulseOnTime, uint16_t pulseOffTime) //pulse length and pulse time off are in milliseconds
+void HapticClass::pulse(uint8_t direction, uint8_t pulseCount, uint16_t pulseOnTime, uint16_t pulseOffTime) //pulse length and pulse time off are in milliseconds
 {
 	_pulse = 0;
+	_direction = direction;
 	_pulseCount = pulseCount + 1;
 	_pulseOnTime = pulseOnTime;
 	_pulseOffTime = pulseOffTime;
@@ -31,14 +32,38 @@ void HapticClass::run(uint64_t time)
 		{
 			if(_on)
 			{
-				PORTH &= ~(0x20);
+				switch(_direction)
+				{
+					case Front:
+					case Back:
+						PORTF &= ~(0x03);
+						break;
+					case Left:
+						PORTF &= ~(0x01);
+						break;
+					case Right:
+						PORTF &= ~(0x02);
+						break;
+				}
 				_nextTime = time + _pulseOffTime;
 				_on = false;
 				_pulse++;
 			}
 			else
 			{
-				PORTH |= 0x20;
+				switch(_direction)
+				{
+					case Front:
+					case Back:
+					PORTF |= 0x03;
+					break;
+					case Left:
+					PORTF |= 0x01;
+					break;
+					case Right:
+					PORTF |= 0x02;
+					break;
+				}
 				_nextTime = time + _pulseOnTime;
 				_on = true;
 			}

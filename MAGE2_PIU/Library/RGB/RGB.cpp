@@ -42,7 +42,7 @@ void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t brightness, uint8_t le
 			break;
 		case Orange:
 			rgb[0] = brightness;
-			rgb[1] = calibratedBrightness / 2;
+			rgb[1] = calibratedBrightness / 4;
 			rgb[2] = B_0;
 			if(rgb[1] == 0) rgb[1] = 1;
 			break;
@@ -56,14 +56,14 @@ void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t brightness, uint8_t le
 			rgb[1] = calibratedBrightness;
 			rgb[2] = B_0;
 			break;
-		case Blue:
-			rgb[0] = B_0;
-			rgb[1] = B_0;
-			rgb[2] = calibratedBrightness;
-			break;
 		case Cyan:
 			rgb[0] = B_0;
 			rgb[1] = calibratedBrightness;
+			rgb[2] = calibratedBrightness;
+			break;
+		case Blue:
+			rgb[0] = B_0;
+			rgb[1] = B_0;
 			rgb[2] = calibratedBrightness;
 			break;
 		case Purple:

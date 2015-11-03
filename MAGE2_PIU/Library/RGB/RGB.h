@@ -9,6 +9,7 @@
 
 #include <Arduino.h>
 #include <I2C.h>
+#include <Constants.h>
 
 #define LTC3220_ADDR 0x1C
 #define LTC3220_1_ADDR 0x1D
@@ -47,8 +48,8 @@ enum Colors
 	Orange,
 	Yellow,
 	Green,
-	Blue,
 	Cyan,
+	Blue,
 	Purple,
 	White,
 	NoColor = 0xFF,
@@ -90,20 +91,11 @@ enum GradRate
 	GradSlow   = 0x06,	
 };
 
-enum HitDirection
-{
-	Front,
-	Back,
-	Left,
-	Right,
-	NoDirection = 0xFF,
-};
-
 class RGBClass
 {
 	public:
 		void init();
-		void setLed(uint8_t led, uint8_t color, uint8_t brightness = B_100, uint8_t led_state = Normal);
+		void setLed(uint8_t led, uint8_t color, uint8_t brightness = B_60, uint8_t led_state = Normal);
 		void setBlinkRate(uint8_t rate = BlinkFast);
 		void setGradRate(uint8_t rate = GradOff);
 		void setHealth(uint8_t percent);
