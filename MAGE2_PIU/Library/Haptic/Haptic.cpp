@@ -34,8 +34,7 @@ void HapticClass::run(uint64_t time)
 			{
 				switch(_direction)
 				{
-					case Front:
-					case Back:
+					default:
 						PORTF &= ~(0x03);
 						break;
 					case Left:
@@ -53,16 +52,15 @@ void HapticClass::run(uint64_t time)
 			{
 				switch(_direction)
 				{
-					case Front:
-					case Back:
-					PORTF |= 0x03;
-					break;
+					default:
+						PORTF |= 0x03;
+						break;
 					case Left:
-					PORTF |= 0x01;
-					break;
+						PORTF |= 0x01;
+						break;
 					case Right:
-					PORTF |= 0x02;
-					break;
+						PORTF |= 0x02;
+						break;
 				}
 				_nextTime = time + _pulseOnTime;
 				_on = true;

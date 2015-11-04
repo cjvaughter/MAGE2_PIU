@@ -12,6 +12,12 @@ void RGBClass::init()
 {
 	_effectTime = 0;
 	_effectActive = false;
+	_effectToggle = false;
+	_effectColor = NoColor;
+	_health = 0;
+	_directionTime = 0;
+	_directionActive = false;
+	_stunned = false;
 	_blink = BlinkFast;
 	_grad = GradOff;
 	_address = LTC3220_ADDR;
@@ -106,7 +112,6 @@ void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t brightness, uint8_t le
 			I2C.writeRegs(_address, Health3, rgb, 3);
 			I2C.writeRegs(_address, Health4, rgb, 3);
 			I2C.writeRegs(_address, Team, rgb, 3);
-			I2C.writeReg(_address, Power, B_100);
 			break;
 		default:
 			I2C.writeRegs(_address, led, rgb, 3);
@@ -133,6 +138,9 @@ void RGBClass::setHealth(uint8_t percent)
 
 void RGBClass::showHealth()
 {
+	_directionActive = false;
+	_effectActive = false;
+	
 	uint8_t diff;
 	if(_health == 100)
 	{

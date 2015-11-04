@@ -43,8 +43,8 @@ enum XBeeMsg
 	State,
 	Effect,
 	Update,
-	ReceivedSpell,
-	SentSpell,
+    Spell_RX,
+    Spell_TX,
 	
 	DFU = 0xFF
 };
@@ -54,6 +54,8 @@ class XBeeClass
 	public:
 		void init();
 		void connect(uint16_t player_id, uint16_t device_id);
+		boolean available();
+		void discard();
 		void heartbeat();
 		void run(uint64_t time);
 		uint8_t nextByte();
@@ -63,13 +65,13 @@ class XBeeClass
 		void exit_at_mode();
 		void Decode(uint8_t data);
 		void Encode(uint8_t length);
-		uint8_t* rx_data;
 		uint8_t* tx_data;
-		uint8_t rx_length;
-		boolean msgReady;
 		boolean connected;
-		
+			
 	private:
+		boolean _msgReady;
+		uint8_t* rx_data;
+		uint8_t rx_length;
 		uint8_t* tx_bfr;
 		uint8_t _step;
 		uint16_t _length;

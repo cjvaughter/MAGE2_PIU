@@ -13,11 +13,11 @@ void XBeeClass::init()
 	XB.begin(38400);
 	connected = false;
 	nextTime = 0;
-	msgReady = false;
+	_msgReady = false;
 	_msg_index = 0;
-	tx_bfr = new uint8_t[51];
-	tx_data = new uint8_t[32];
-	rx_data = new uint8_t[32];
+	tx_bfr = new uint8_t[50];
+	tx_data = new uint8_t[31];
+	rx_data = new uint8_t[31];
 	
 	tx_bfr[0] = (Delimiter);
 	tx_bfr[3] = (TX);
@@ -41,7 +41,7 @@ void XBeeClass::init()
 
 void XBeeClass::connect(uint16_t player_id, uint16_t device_id)
 {
-	tx_data[0] = 1;
+	tx_data[0] = Connect;
 	tx_data[1] = (byte)(player_id>>8);
 	tx_data[2] = (byte)player_id;
 	tx_data[3] = (byte)(device_id>>8);
@@ -50,9 +50,20 @@ void XBeeClass::connect(uint16_t player_id, uint16_t device_id)
 	Debugger.out(XBeeLibrary, MsgTX, "Connect attempt");
 }
 
+boolean XBeeClass::available()
+{
+	return _msgReady;
+}
+
+void XBeeClass::discard()
+{
+	_msgReady = false;
+	_msg_index = 0;
+}
+
 void XBeeClass::heartbeat()
 {
-	tx_data[0] = 0;
+	tx_data[0] = Heartbeat;
 	Encode(1);
 	Debugger.out(XBeeLibrary, "Heartbeat");
 }
@@ -76,7 +87,11 @@ void XBeeClass::run(uint64_t time)
 uint8_t XBeeClass::nextByte()
 {
 	uint8_t data = rx_data[_msg_index++];
-	if(_msg_index >= rx_length) msgReady = false;
+	if(_msg_index >= rx_length)
+	{
+		_msg_index = 0;
+		_msgReady = false;
+	}
 	return data;
 }
 
@@ -156,7 +171,7 @@ void XBeeClass::Decode(uint8_t data)
 		case 12: case 13: case 14:
 			_sum += data;
 			_step++;
-			msgReady = false; //if you haven't read the message by now, you missed it
+			_msgReady = false; //if you haven't read the message by now, you missed it
 			break;
 		default:
 			rx_data[_index++] = data;
@@ -168,7 +183,7 @@ void XBeeClass::Decode(uint8_t data)
 			if (Check - _sum == _checksum)
 			{
 				rx_length = _index;
-				msgReady = true;
+				_msgReady = true;
 				rx_data[rx_length] = '\0';
 				Debugger.out(XBeeLibrary, MsgRX, (char*)rx_data);
 			}
