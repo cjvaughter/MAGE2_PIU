@@ -9,6 +9,8 @@
 
 #include <Arduino.h>
 
+//#define DEBUGGER_ENABLED
+
 enum Source
 {
 	MainProgram,

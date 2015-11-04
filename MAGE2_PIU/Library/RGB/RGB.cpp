@@ -30,7 +30,7 @@ void RGBClass::init()
 	I2C.writeReg(_address, GRAD_BLINK_REG, 0);
 	
 	setLed(All, NoColor);
-	setLed(Power, Red);
+	setLed(Power, Red, B_100);
 }
 
 void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t brightness, uint8_t led_state)
@@ -59,7 +59,10 @@ void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t brightness, uint8_t le
 			break;
 		case Green:
 			rgb[0] = B_0;
-			rgb[1] = calibratedBrightness;
+			if(brightness == B_100)
+				rgb[1] = brightness;
+			else
+				rgb[1] = calibratedBrightness;
 			rgb[2] = B_0;
 			break;
 		case Cyan:
@@ -70,7 +73,10 @@ void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t brightness, uint8_t le
 		case Blue:
 			rgb[0] = B_0;
 			rgb[1] = B_0;
-			rgb[2] = calibratedBrightness;
+			if(brightness == B_100)
+				rgb[2] = brightness;
+			else
+				rgb[2] = calibratedBrightness;
 			break;
 		case Purple:
 			rgb[0] = brightness;
@@ -96,8 +102,6 @@ void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t brightness, uint8_t le
 	switch(led)
 	{
 		case Power:
-			if(color == NoColor) rgb[0] = B_0;
-			else rgb[0] = B_100;
 			I2C.writeReg(_address, Power, rgb[0]);
 			break;
 		case HealthBar:
@@ -196,7 +200,7 @@ void RGBClass::setDirection(uint8_t color, uint8_t direction, uint64_t time, boo
 			setLed(Health4, color);
 			setLed(Health3, Red);
 			setLed(Health2, Red);
-			setLed(Health4, color);
+			setLed(Health1, color);
 			break;
 		case Back:
 			setLed(Health4, Red);

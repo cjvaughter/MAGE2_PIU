@@ -8,9 +8,10 @@
 
 DebuggerClass Debugger;
 
+#ifdef DEBUGGER_ENABLED
 void DebuggerClass::init()
 {
-	DBG.begin(38400);
+	DBG.begin(115200);
 }
 
 void DebuggerClass::out(uint8_t src, uint8_t event_type, const char* data)
@@ -62,3 +63,10 @@ void DebuggerClass::out(const char* data)
 {
 	out(NoSrc, NoType, data);
 }
+
+#else
+void DebuggerClass::init() {}
+void DebuggerClass::out(uint8_t src, uint8_t event_type, const char* data) {}
+void DebuggerClass::out(uint8_t src, const char* data) {}
+void DebuggerClass::out(const char* data) {}
+#endif

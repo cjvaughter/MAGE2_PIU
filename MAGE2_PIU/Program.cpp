@@ -9,15 +9,21 @@
 
 uint8_t state = Dead;
 uint64_t currentTime = 0;
-uint16_t player_id = 0;
+uint16_t player_id = 0xCCCC;
 uint8_t team = 0;     			    
 uint8_t lastDirection = Front;
+
+uint64_t lastTime = 0;
 	
 void Error(const char* message);
+void reset();
 	
 void setup()
 {
+	sei();
 	Debugger.init();
+	Serial2.begin(115200);
+	Serial2.println("Program Started");
 	RGB.init();
 	/*
 	if(Settings.init()) 
@@ -44,12 +50,22 @@ void setup()
 	Haptic.init();
 	//MIRP.init();
 	
-	//Debugger.out(MainProgram, Initialized);
+	Debugger.out(MainProgram, Initialized);
 	XBee.connect(player_id, 0xEEEE);
 }
 
 void loop()
 {	
+	if(Serial2.available())
+	{
+		uint8_t nbytes = (uint8_t)Serial2.available();
+		while(nbytes--)
+		{
+			if(Serial2.read() == 0x55)
+				reset();
+		}
+	}
+	
 	currentTime = millis();
 	
 	//XBee transactions 
@@ -60,13 +76,14 @@ void loop()
 		{	
 			case Connect:
 				XBee.connected = true;
-				team = XBee.nextByte();
-				Haptic.pulse(NoDirection, 2, 200, 200);
-				//set team led
+				RGB.setLed(Team, XBee.nextByte(), B_100);
+				//Haptic.pulse(NoDirection, 1, 50, 50);
 				break;
 			case Disconnect:
 				XBee.connected = false;
 				RGB.setLed(All, NoColor);
+				RGB.setLed(HealthBar, NoColor);
+				Haptic.pulse(NoDirection, 1, 50, 50);
 				break;
 			case Health:
 				RGB.setHealth(XBee.nextByte());
@@ -83,7 +100,7 @@ void loop()
 				{
 					case Alive:
 						RGB.showHealth();
-						Haptic.pulse(NoDirection, 5, 150, 150);
+						//Haptic.pulse(NoDirection, 1, 50, 50);
 						break;
 					case Damaged:
 						RGB.setDirection(NoColor, lastDirection, currentTime);
@@ -99,7 +116,7 @@ void loop()
 						break;
 					case Dead:
 						RGB.setLed(HealthBar, Red);
-						Haptic.pulse(NoDirection, 1, 400, 100);
+						//Haptic.pulse(NoDirection, 1, 400, 100);
 						break;
 				}
 				RGB.doEffect(currentTime);
@@ -107,17 +124,8 @@ void loop()
 				break;
 			case DFU:
 				Debugger.out(MainProgram, "Rebooting in DFU mode...");
-				RGB.setBlinkRate();
-				RGB.setLed(All, NoColor);
-				RGB.setLed(Power, Red, B_60, Blink);
 				XBee.transparent_mode();
-				cli();
-				EIND = 1;
-				asm volatile (
-				"ldi r31, 0xFE\n"
-				"ldi r30, 0x00\n"
-				"mov r2,r31\n"
-				"eijmp\n");	//set OTA flag
+				reset();
 				break;
 			default:
 				Debugger.out(MainProgram, "Unrecognized XBee message");
@@ -127,6 +135,7 @@ void loop()
 	}
 	
 	//Bluetooth transactions
+	/*
 	Bluetooth.run();
 	if(Bluetooth.msgReady)
 	{
@@ -142,6 +151,7 @@ void loop()
 		}
 		Bluetooth.msgReady = false;
 	}
+	*/
 	
 	//UX
 	Haptic.run(currentTime);
@@ -150,9 +160,25 @@ void loop()
 
 void Error(const char* message)
 {
-	RGB.setLed(All, NoColor);
 	RGB.setLed(All, Red, B_60, Blink);
 	RGB.setLed(Power, Red, B_100, Blink);
 	Debugger.out(MainProgram, message);
 	exit(1);
+}
+
+void reset()
+{
+	RGB.setBlinkRate();
+	RGB.setLed(All, NoColor);
+	RGB.setLed(Power, Red, B_100, Blink);
+	cli();			  //Don't interrupt me
+	EIND = 1;		  //Jump address high
+	MCUSR = 0;		  //Fool the bootloader
+	asm volatile
+	(
+		"ldi r31, 0xFE\n" //Jump address mid
+		"ldi r30, 0x00\n" //Jump address low
+		"mov r2,r30\n"	  //DONT Set OTA flag
+		"eijmp\n"		  //Jump to bootloader
+	);
 }
