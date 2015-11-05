@@ -17,11 +17,18 @@ void HapticClass::pulse(uint8_t direction, uint8_t pulseCount, uint16_t pulseOnT
 {
 	_pulse = 0;
 	_direction = direction;
-	_pulseCount = pulseCount;
+	_pulseCount = pulseCount - 1;
 	_pulseOnTime = pulseOnTime;
 	_pulseOffTime = pulseOffTime;
 	_nextTime = 0;
 	_on = false;
+}
+
+void HapticClass::stop()
+{
+	_pulse = 255;
+	_pulseCount = 0;
+	PORTF &= ~(0x03);
 }
 
 void HapticClass::run(uint64_t time)

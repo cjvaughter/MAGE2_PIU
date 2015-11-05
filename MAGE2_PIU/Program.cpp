@@ -11,7 +11,7 @@ uint8_t state = Dead;
 uint64_t currentTime = 0;
 uint16_t player_id = 0xCCCC;
 uint8_t team = 0;     			    
-uint8_t lastDirection = Front;
+uint8_t lastDirection = NoDirection;
 	
 void Error(const char* message);
 void reset(bool DFU = false);
@@ -70,12 +70,14 @@ void loop()
 				XBee.connected = true;
 				RGB.setLed(Team, XBee.nextByte(), B_100);
 				//Haptic.pulse(NoDirection, 1, 50, 50);
+				//tell weapon
 				break;
 			case Disconnect:
 				XBee.connected = false;
 				RGB.setLed(All, NoColor);
 				RGB.setLed(HealthBar, NoColor);
 				Haptic.pulse(NoDirection, 1, 50, 50);
+				//tell weapon
 				break;
 			case Health:
 				RGB.setHealth(XBee.nextByte());
@@ -92,26 +94,30 @@ void loop()
 				{
 					case Alive:
 						RGB.showHealth();
-						//Haptic.pulse(NoDirection, 1, 50, 50);
+						Haptic.stop();
 						break;
 					case Damaged:
+						lastDirection++;
 						RGB.setDirection(NoColor, lastDirection, currentTime);
-						Haptic.pulse(lastDirection, 1, 100, 100);
+						Haptic.pulse(lastDirection, 1, 1000);
 						break;
 					case Stunned:
+						lastDirection++;
 						RGB.setDirection(Blue, lastDirection, currentTime, true);
-						Haptic.pulse(lastDirection, 4, 50, 50);
+						Haptic.pulse(lastDirection, 10, 1000, 500);
 						break;
 					case Healed:
+						lastDirection++;
 						RGB.setDirection(Green, lastDirection, currentTime);
-						Haptic.pulse(lastDirection, 2, 25, 125);
+						Haptic.pulse(lastDirection, 2, 400, 100);
 						break;
 					case Dead:
 						RGB.setLed(HealthBar, Red);
-						Haptic.pulse(NoDirection, 1, 400, 100);
+						Haptic.pulse(NoDirection, 1, 2000);
 						break;
 				}
 				RGB.doEffect(currentTime);
+				if(lastDirection >= Right) lastDirection = NoDirection;
 				//update weapon
 				break;
 			case DFU:

@@ -71,6 +71,7 @@ class XBeeClass
 			
 	private:
 		boolean _msgReady;
+		boolean _busy;
 		uint8_t* rx_data;
 		uint8_t rx_length;
 		uint8_t* tx_bfr;

@@ -226,7 +226,7 @@ void RGBClass::setDirection(uint8_t color, uint8_t direction, uint64_t time, boo
 	}
 	_stunned = stunned;
 	_directionActive = true;
-	_directionTime = time + 500;
+	_directionTime = time + 1000;
 }
 
 void RGBClass::setEffect(uint8_t color)
