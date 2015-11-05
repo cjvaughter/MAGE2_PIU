@@ -14,15 +14,15 @@ uint8_t team = 0;
 uint8_t lastDirection = NoDirection;
 	
 void Error(const char* message);
-void reset(bool DFU = false);
+void reset(boolean DFU = false);
 void debug_programming_hook();
 	
 void setup()
 {
-	sei();
+	//sei();
 	Debugger.init();
 	Serial2.begin(115200);
-	Serial2.println("Program Started");
+	//Serial2.println("Program Started");
 	RGB.init();
 	/*
 	if(Settings.init()) 
@@ -44,14 +44,13 @@ void setup()
 		Error("No SD card!");
 	}
 	*/
-	XBee.init();
+
 	//Bluetooth.init();
 	Haptic.init();
 	//MIRP.init();
+	XBee.init();
 	
 	Debugger.out(MainProgram, Initialized);
-	RGB.setLed(Team, Red, B_100);
-	XBee.connect(player_id, 0xEEEE);
 }
 
 void loop()
@@ -68,7 +67,8 @@ void loop()
 		{	
 			case Connect:
 				XBee.connected = true;
-				RGB.setLed(Team, XBee.nextByte(), B_100);
+				team = XBee.nextByte();
+				RGB.setLed(Team, team);
 				//Haptic.pulse(NoDirection, 1, 50, 50);
 				//tell weapon
 				break;
@@ -76,7 +76,7 @@ void loop()
 				XBee.connected = false;
 				RGB.setLed(All, NoColor);
 				RGB.setLed(HealthBar, NoColor);
-				Haptic.pulse(NoDirection, 1, 50, 50);
+				//Haptic.pulse(NoDirection, 1, 50, 50);
 				//tell weapon
 				break;
 			case Health:
@@ -94,6 +94,7 @@ void loop()
 				{
 					case Alive:
 						RGB.showHealth();
+						RGB.setLed(Team, team);
 						Haptic.stop();
 						break;
 					case Damaged:
@@ -127,10 +128,12 @@ void loop()
 				break;
 			default:
 				Debugger.out(MainProgram, "Unrecognized XBee message");
-				RGB.setLed(Team, Red, B_100, Blink);
+				RGB.setLed(Team, Red, Blink);
 				XBee.discard();
 				break;
 		}
+		if(!XBee.available())
+			XBee.heartbeat();
 	}
 	
 	//Bluetooth transactions
@@ -160,20 +163,20 @@ void loop()
 void Error(const char* message)
 {
 	RGB.setLed(All, Red, B_60, Blink);
-	RGB.setLed(Power, Red, B_100, Blink);
+	RGB.setLed(Power, Red, B_60, Blink);
 	Debugger.out(MainProgram, message);
 	exit(1);
 }
 
-void reset(bool DFU)
+void reset(boolean DFU)
 {
 	RGB.setBlinkRate();
 	RGB.setLed(All, NoColor);
-	RGB.setLed(Power, Red, B_100, Blink);
+	RGB.setLed(Power, Red, B_60, Blink);
 	if(DFU)
 		RGB.setLed(Team, Green, B_60, Blink);
 	else
-		RGB.setLed(Team, Purple, B_100);
+		RGB.setLed(Team, Purple);
 	
 	cli();				    //Don't interrupt me
 	
@@ -196,13 +199,13 @@ void reset(bool DFU)
 
 void debug_programming_hook()
 {
-	if(Serial2.available())
+	uint8_t nbytes = (uint8_t)Serial2.available();
+	while(nbytes--)
 	{
-		uint8_t nbytes = (uint8_t)Serial2.available();
-		while(nbytes--)
-		{
-			if(Serial2.read() == 0x55)
+		uint8_t data = Serial2.read();
+		if(data == 0x55)
 			reset();
-		}
+		//if(data == 0x43)
+			//XBee.connect(player_id, 0xEEEE);
 	}
 }

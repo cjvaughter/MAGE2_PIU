@@ -116,7 +116,7 @@ void XBeeClass::api_mode()
 
 void XBeeClass::enter_at_mode()
 {
-	delay(10);
+	delay(100);
 	XB.print("+++");
 	XB.flush();
 	wait_for_cr();
@@ -238,5 +238,5 @@ void XBeeClass::Encode(uint8_t length)
 	XB.write(tx_bfr, offset);
 	
 	tx_data[length] = '\0';
-	nextTime = currentTime + 4000;
+	nextTime = currentTime + 2000;
 }

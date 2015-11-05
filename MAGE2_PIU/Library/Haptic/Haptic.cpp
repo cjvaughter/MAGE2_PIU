@@ -17,7 +17,7 @@ void HapticClass::pulse(uint8_t direction, uint8_t pulseCount, uint16_t pulseOnT
 {
 	_pulse = 0;
 	_direction = direction;
-	_pulseCount = pulseCount - 1;
+	_pulseCount = pulseCount;
 	_pulseOnTime = pulseOnTime;
 	_pulseOffTime = pulseOffTime;
 	_nextTime = 0;
@@ -33,7 +33,7 @@ void HapticClass::stop()
 
 void HapticClass::run(uint64_t time)
 {
-	if(_pulse <= _pulseCount)
+	if(_pulse < _pulseCount)
 	{
 		if(time >= _nextTime)
 		{
