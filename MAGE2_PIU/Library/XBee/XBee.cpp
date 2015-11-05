@@ -15,6 +15,7 @@ void XBeeClass::init()
 	nextTime = 0;
 	_msgReady = false;
 	_msg_index = 0;
+	_busy = false;
 	tx_bfr = new uint8_t[50];
 	tx_data = new uint8_t[31];
 	rx_data = new uint8_t[31];
@@ -73,10 +74,10 @@ void XBeeClass::run(uint64_t time)
 	currentTime = time;
 	if(connected)
 	{
-		if(currentTime >= nextTime)
+		if(currentTime >= nextTime && !_busy)
 		{
 			heartbeat();
-			nextTime = currentTime + 2000;
+			Serial2.println("Heartbeat");
 		}
 	}
 	
@@ -148,6 +149,7 @@ void XBeeClass::Decode(uint8_t data)
 			{
 				_index = 0;
 				_step++;
+				_busy = true;
 			}
 			break;
 		case 1:
@@ -159,7 +161,11 @@ void XBeeClass::Decode(uint8_t data)
 			_step++;
 			break;
 		case 3:
-			if (data != RX) _step = 0;
+			if (data != RX)
+			{
+				_step = 0;
+				_busy = false;
+			}
 			else
 			{
 				_sum = data;
@@ -188,6 +194,8 @@ void XBeeClass::Decode(uint8_t data)
 				Debugger.out(XBeeLibrary, MsgRX, (char*)rx_data);
 			}
 			_step = 0;
+			_busy = false;
+			nextTime = 0;
 			break;
     }
 }
@@ -216,5 +224,5 @@ void XBeeClass::Encode(uint8_t length)
 	XB.write(tx_bfr, offset);
 	
 	tx_data[length] = '\0';
-	nextTime = currentTime + 2000;
+	nextTime = currentTime + 4000;
 }
