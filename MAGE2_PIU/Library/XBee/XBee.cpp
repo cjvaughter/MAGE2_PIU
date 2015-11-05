@@ -35,7 +35,7 @@ void XBeeClass::init()
 	tx_bfr[15] = (DefaultAddress16Low);
 	tx_bfr[16] = (0); //Maximum network hops
 	tx_bfr[17] = (0); //No options
-	//api_mode();
+	api_mode();
 	Debugger.out(XBeeLibrary, Initialized);
 }
 
@@ -100,7 +100,7 @@ void XBeeClass::transparent_mode()
 	enter_at_mode();
 	XB.print("ATAP 0\r");
 	XB.flush();
-	while(XB.read() != 0x0D);
+	wait_for_cr();
 	exit_at_mode();
 }
 
@@ -110,7 +110,7 @@ void XBeeClass::api_mode()
 	XB.print("ATAP 2\r");
 	//XB.print("ATFR\r");
 	XB.flush();
-	while(XB.read() != 0x0D);
+	wait_for_cr();
 	exit_at_mode();
 }
 
@@ -119,14 +119,29 @@ void XBeeClass::enter_at_mode()
 	delay(10);
 	XB.print("+++");
 	XB.flush();
-	while(XB.read() != 0x0D);
+	wait_for_cr();
 }
 
 void XBeeClass::exit_at_mode()
 {
 	XB.write("ATCN\r");
 	XB.flush();
-	while(XB.read() != 0x0D);
+	wait_for_cr();
+}
+
+void XBeeClass::wait_for_cr()
+{
+	if(XB.read() == 0x0D)
+		return; //sweet
+	
+	uint8_t count = 10;
+	while(count--)
+	{
+		delay(1);
+		if(XB.read() == 0x0D)
+			return; //not bad
+	}
+	return; //you tried
 }
 
 void XBeeClass::Decode(uint8_t data)

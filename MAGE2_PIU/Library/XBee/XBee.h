@@ -63,6 +63,7 @@ class XBeeClass
 		void api_mode();
 		void enter_at_mode();
 		void exit_at_mode();
+		void wait_for_cr();
 		void Decode(uint8_t data);
 		void Encode(uint8_t length);
 		uint8_t* tx_data;

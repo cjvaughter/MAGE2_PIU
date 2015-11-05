@@ -12,11 +12,10 @@ uint64_t currentTime = 0;
 uint16_t player_id = 0xCCCC;
 uint8_t team = 0;     			    
 uint8_t lastDirection = Front;
-
-uint64_t lastTime = 0;
 	
 void Error(const char* message);
-void reset();
+void reset(bool DFU = false);
+void debug_programming_hook();
 	
 void setup()
 {
@@ -51,20 +50,13 @@ void setup()
 	//MIRP.init();
 	
 	Debugger.out(MainProgram, Initialized);
+	RGB.setLed(Team, Red, B_100);
 	XBee.connect(player_id, 0xEEEE);
 }
 
 void loop()
 {	
-	if(Serial2.available())
-	{
-		uint8_t nbytes = (uint8_t)Serial2.available();
-		while(nbytes--)
-		{
-			if(Serial2.read() == 0x55)
-				reset();
-		}
-	}
+	debug_programming_hook();
 	
 	currentTime = millis();
 	
@@ -116,7 +108,7 @@ void loop()
 						break;
 					case Dead:
 						RGB.setLed(HealthBar, Red);
-						//Haptic.pulse(NoDirection, 1, 400, 100);
+						Haptic.pulse(NoDirection, 1, 400, 100);
 						break;
 				}
 				RGB.doEffect(currentTime);
@@ -125,10 +117,11 @@ void loop()
 			case DFU:
 				Debugger.out(MainProgram, "Rebooting in DFU mode...");
 				XBee.transparent_mode();
-				reset();
+				reset(true);
 				break;
 			default:
 				Debugger.out(MainProgram, "Unrecognized XBee message");
+				RGB.setLed(Team, Red, B_100, Blink);
 				XBee.discard();
 				break;
 		}
@@ -166,19 +159,44 @@ void Error(const char* message)
 	exit(1);
 }
 
-void reset()
+void reset(bool DFU)
 {
 	RGB.setBlinkRate();
 	RGB.setLed(All, NoColor);
 	RGB.setLed(Power, Red, B_100, Blink);
-	cli();			  //Don't interrupt me
-	EIND = 1;		  //Jump address high
-	MCUSR = 0;		  //Fool the bootloader
+	if(DFU)
+		RGB.setLed(Team, Green, B_60, Blink);
+	else
+		RGB.setLed(Team, Purple, B_100);
+	
+	cli();				    //Don't interrupt me
+	
+	if(DFU)
+		MCUSR = _BV(EXTRF); //Set reset flag to External Reset (run bootloader)
+	else
+		//MCUSR = _BV(PORF);  //Set reset flag to Power On Reset (skip to main program)
+		MCUSR = 0;		    //Clear reset flags (run bootloader [for debugging])
+		
+	EIND = 1;			    //Jump address high
 	asm volatile
 	(
-		"ldi r31, 0xFE\n" //Jump address mid
-		"ldi r30, 0x00\n" //Jump address low
-		"mov r2,r30\n"	  //DONT Set OTA flag
-		"eijmp\n"		  //Jump to bootloader
+		"ldi r31, 0xFE\n"   //Jump address mid
+		"ldi r30, 0x00\n"   //Jump address low
+		"mov r2, %0\n"      //Set (or clear) OTA flag
+		"eijmp\n"		    //Jump to bootloader
+		:: "r" (DFU)
 	);
+}
+
+void debug_programming_hook()
+{
+	if(Serial2.available())
+	{
+		uint8_t nbytes = (uint8_t)Serial2.available();
+		while(nbytes--)
+		{
+			if(Serial2.read() == 0x55)
+			reset();
+		}
+	}
 }
