@@ -37,7 +37,6 @@ void XBeeClass::init()
 	tx_bfr[16] = (0); //Maximum network hops
 	tx_bfr[17] = (0); //No options
 	api_mode();
-	Debugger.out(XBeeLibrary, Initialized);
 }
 
 void XBeeClass::connect(uint16_t player_id, uint16_t device_id)
@@ -48,7 +47,6 @@ void XBeeClass::connect(uint16_t player_id, uint16_t device_id)
 	tx_data[3] = (byte)(device_id>>8);
 	tx_data[4] = (byte)device_id;
 	Encode(5);
-	Debugger.out(XBeeLibrary, MsgTX, "Connect attempt");
 }
 
 boolean XBeeClass::available()
@@ -66,7 +64,6 @@ void XBeeClass::heartbeat()
 {
 	tx_data[0] = Heartbeat;
 	Encode(1);
-	Debugger.out(XBeeLibrary, "Heartbeat");
 }
 
 void XBeeClass::run(uint64_t time)
@@ -205,7 +202,6 @@ void XBeeClass::Decode(uint8_t data)
 				rx_length = _index;
 				_msgReady = true;
 				rx_data[rx_length] = '\0';
-				Debugger.out(XBeeLibrary, MsgRX, (char*)rx_data);
 			}
 			_step = 0;
 			_busy = false;

@@ -11,26 +11,27 @@
 MIRP2Class MIRP2;
 
 void MIRP2Class::init()
-{
-	timerCounter = 0;
-	byteCount = 0;
-	msgReady = false;
-	startNibble = 0;
-	for(int i =0; i< 10; i++){
-		bytes[i] = 0x00;
-	}
-	bytePos = 0;
-	
+{	
 	DDRK &= ~(0x0F);		//Set pins to input
 	PORTK |= 0x0F;			//Enable pull-up resistors
 	
-	PCMSK2 |= 0x0F;			//Enable PCINT 16-19
-	
-	
-	TCCR1B |= (1<<WGM12)|(1<<CS10); //set up prescaler of 1 and CTC mode
-	TCNT1 = 0;
-	TIMSK1 |= (1<<OCIE1A); //CTC interrupt enable
-	OCR1A = OCR1A_halfBit;//(uint16_t) OCR1A_2533Hz/2; //7.5 cycles
+	//PCMSK2 |= 0x0F;			//Enable PCINT 16-19
+	TCCR1B |= (1<<WGM12)|(1<<CS10); //set up prescaler of 1 and CTC mode	
+
+	msgReady = false;
+	direction = NoDirection;
+	color = NoColor;
+	reset();
+}
+
+void MIRP2Class::reset()
+{
+	step = 0;
+	byteCount = 0;
+	bitPos = 7;
+	startNibble = 0;
+	reading = false;	
+	//setPinChange();
 }
 
 void MIRP2Class::setPinChange()
@@ -58,31 +59,22 @@ void MIRP2Class::setTimer(boolean half)
 	SREG = sreg;
 }
 
-boolean MIRP2Class::available()
-{
-	return msgReady;
-}
-
 void MIRP2Class::decode()
 {
-	timerCounter++;
 	uint8_t pinValue = 0;
 	switch(direction)
 	{
 		case Front:
-			pinValue = PINK & 0x08;
-			pinValue = pinValue >> 3;
+			pinValue = ((PINK & 0x08) >> 3) ^ 0x01;
 			break;
 		case Back:
-			pinValue = PINK & 0x04;
-			pinValue = pinValue >> 2;
+			pinValue = ((PINK & 0x04) >> 2) ^ 0x01;
 			break;
 		case Right:
-			pinValue = PINK & 0x02;
-			pinValue = pinValue >> 1;
+			pinValue = ((PINK & 0x02) >> 1) ^ 0x01;
 			break;
 		case Left:
-			pinValue = PINK & 0x01;
+			pinValue = (PINK & 0x01) ^ 0x01;
 			break;
 	}
 	
@@ -93,86 +85,140 @@ void MIRP2Class::decode()
 			startNibble = pinValue;
 			step++;
 			break;
-		case 1:
-			startNibble = (startNibble << 1) | pinValue;
-			break;
-	}
-	
-	if (timerCounter >= 100) //when timerCounter = 100 all of the data has been transmitted
-	{
-		init_pinChange_interrupts();
-		disable_timer_interrupts();
-		msgReady = true;
-		for(int i =0; i < 6; i++)
-		{
-			Serial.print("Byte ");
-			Serial.print(i);
-			Serial.print(" = ");
-			Serial.println(bytes[i], HEX);
-		}
-		init_variables();
-	}
-	else if(timerCounter <= 4)
-	{
-		startNibble = (startNibble << 1) + pinValue;
-	}
-	else if(((timerCounter % 2) != 0) && timerCounter > 4)
-	{
-		GPIO_odd = pinValue;
-	}
-	else if(((timerCounter % 2) == 0) && timerCounter > 4)
-	{
-		bytePos ++;
-		GPIO_even = pinValue;
-		if(startNibble != 0x03) //Invalid start sequence
-		{
-			init_variables();
-			setPinChange();
-		}
-		else
-		{ 
-			bytes[byteCount] = (bytes[byteCount] << 1) + (GPIO_even);
-		}
-		if(bytePos == 8)
-		{
-			bytePos = 0;
-			byteCount ++;
-		}
-	}
-	msgReady = false;
-}
-
-ISR(PCINT2_vect)
-{
-	uint8_t pins = PINK & 0x0F;
-	
-	switch(pins) //Front, Back, Right, Left
-	{
-		case 0x08: //Front
-		case 0x09: //Front-Left
-		case 0x0A: //Front-Right
-			MIRP2.direction = Front;
-			break;
-		case 0x04: //Back
-		case 0x05: //Back-Left
-		case 0x06: //Back-Right
-			MIRP2.direction = Back;
-			break;
-		case 0x02: //Right
-			MIRP2.direction = Right;
-			break;
-		case 0x01: //Left
-			MIRP2.direction = Left;
+		case 1: case 2: case 3:
+			startNibble |= (pinValue << step);
+			if(step == 3)
+			{
+				if(startNibble != 0x0C)
+				{
+					reset();
+					//MIRP2.color = Cyan;
+					break;
+				}
+				else
+				{
+					msgReady = false;
+				}
+			}
+			step++;
 			break;
 		default:
-			MIRP2.direction = NoDirection;
+			if(step % 2 == 0)
+			{
+				GPIO_even = pinValue;
+			}
+			else
+			{
+				GPIO_odd = pinValue;
+				if(GPIO_even == GPIO_odd)
+				{
+					reset();
+					MIRP2.color = Purple;
+					break;
+				}
+				else
+				{
+					data[byteCount] |= (GPIO_even << bitPos--);
+					if(bitPos == 0)
+					{
+						bitPos = 7;
+						byteCount++;
+					}
+					if(byteCount == 6)
+					{
+						validate();
+						reset();
+						break;
+					}
+				}
+			}
+			step++;
 			break;
 	}
-	
-	if(MIRP2.direction != NoDirection)
-		MIRP2.setTimer(true); //wait for half of a bit
 }
 
+void MIRP2Class::validate()
+{
+	uint8_t sum = 0;
+	for(uint8_t i = 0; i < PACKET_SIZE - 1; i++)
+	{
+		sum += data[i];
+	}
+	if(0xFF - sum == data[PACKET_SIZE-1]) msgReady = true;
+	else
+	{
+		msgReady = false;
+		MIRP2.color = Red;
+	}
+}
+
+void MIRP2Class::read()
+{
+	if(reading) return;
+	
+	uint8_t pins = ~(PINK & 0x0F);
+	
+	if(pins & 0x08)
+	{
+		direction = Front;
+		color = Orange;
+	}
+	/*else if(pins & 0x04)
+	{
+		direction = Back;
+		color = Yellow;
+	}
+	else if(pins & 0x02)
+	{
+		direction = Right;
+		color = Cyan;
+	}
+	else if(pins & 0x01)
+	{
+		direction = Left;
+		color = Blue;
+	}*/
+	
+	if(direction != NoDirection)
+	{
+		MIRP2.setTimer(true); //wait for half of a bit
+		reading = true;
+	}
+}
+/*
+ISR(PCINT2_vect)
+{
+	uint8_t pins = ~(PINK & 0x0F);
+	uint8_t direction = NoDirection;
+	
+	if(pins & 0x08)
+	{
+		direction = Front;
+		MIRP2.color = Orange;
+	}
+	else if(pins & 0x04)
+	{
+		direction = Back;
+		MIRP2.color = Yellow;
+	}
+	else if(pins & 0x02)
+	{
+		direction = Right;
+		MIRP2.color = Cyan;
+	}
+	else if(pins & 0x01)
+	{
+		direction = Left;
+		MIRP2.color = Blue;
+	}
+	
+	if(direction != NoDirection)
+	{
+		MIRP2.direction = direction;
+		MIRP2.setTimer(true); //wait for half of a bit
+	}
+}
+*/
 ISR(TIMER1_COMPA_vect)
 {
 	MIRP2.decode();

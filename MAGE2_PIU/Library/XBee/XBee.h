@@ -8,7 +8,6 @@
 #define XBEE_h
 
 #include <Arduino.h>
-#include <Debugger.h>
 
 //XBEE API frame definitions
 #define Delimiter 0x7e

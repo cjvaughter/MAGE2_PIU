@@ -1,13 +1,13 @@
 #include <Arduino.h>
-#include <Constants.h>
-#include <Debugger.h>
 #include <Bluetooth.h>
-#include <XBee.h>
+#include <Constants.h>
+#include <Haptic.h>
+#include <MIRP2.h>
 #include <RGB.h>
 #include <Settings.h>
-#include <Haptic.h>
+#include <XBee.h>
 
-uint8_t state = Dead;
+uint8_t state = Alive;
 uint64_t currentTime = 0;
 uint16_t player_id = 0xCCCC;
 uint8_t team = 0;     			    
@@ -15,14 +15,10 @@ uint8_t lastDirection = NoDirection;
 	
 void Error(const char* message);
 void reset(boolean DFU = false);
-void debug_programming_hook();
 	
 void setup()
 {
-	//sei();
-	Debugger.init();
-	Serial2.begin(115200);
-	//Serial2.println("Program Started");
+	sei();
 	RGB.init();
 	/*
 	if(Settings.init()) 
@@ -30,7 +26,6 @@ void setup()
 		if(Settings.read())
 		{
 			player_id = Settings.player_id;
-			Debugger.enabled = Settings.debugEnabled;
 			if(player_id == 0)
 				Error("Invalid player ID!");
 		}
@@ -46,19 +41,15 @@ void setup()
 	*/
 
 	//Bluetooth.init();
-	Haptic.init();
-	//MIRP.init();
-	XBee.init();
-	
-	Debugger.out(MainProgram, Initialized);
+	//Haptic.init();
+	MIRP2.init();
+	//XBee.init();
 }
 
 void loop()
-{	
-	debug_programming_hook();
-	
+{
 	currentTime = millis();
-	
+	/*
 	//XBee transactions 
 	XBee.run(currentTime);
 	if(XBee.available())
@@ -122,12 +113,10 @@ void loop()
 				//update weapon
 				break;
 			case DFU:
-				Debugger.out(MainProgram, "Rebooting in DFU mode...");
 				XBee.transparent_mode();
 				reset(true);
 				break;
 			default:
-				Debugger.out(MainProgram, "Unrecognized XBee message");
 				RGB.setLed(Team, Red, Blink);
 				XBee.discard();
 				break;
@@ -135,7 +124,7 @@ void loop()
 		if(!XBee.available())
 			XBee.heartbeat();
 	}
-	
+	*/
 	//Bluetooth transactions
 	/*
 	Bluetooth.run();
@@ -148,23 +137,45 @@ void loop()
 				XBee.connect(player_id, Bluetooth.device_id);
 				break;
 			default:
-				Debugger.out(MainProgram, "Unrecognized BT message");
 				break;
 		}
 		Bluetooth.msgReady = false;
 	}
 	*/
 	
+	MIRP2.read();
+	if(MIRP2.msgReady && state != Dead)
+	{
+		cli();
+		/*
+		XBee.tx_data[0] = Spell_RX;
+		XBee.tx_data[1] = MIRP2.data[0];
+		XBee.tx_data[2] = MIRP2.data[1];
+		XBee.tx_data[3] = MIRP2.data[2];
+		XBee.tx_data[4] = MIRP2.data[3];
+		XBee.tx_data[5] = MIRP2.data[4];
+		lastDirection = MIRP2.direction;
+		*/
+		MIRP2.msgReady = false;
+		sei();
+		//XBee.Encode(6);
+		RGB.setLed(Team, Green);
+	}
+	if(MIRP2.color != NoColor)
+	{
+		RGB.setLed(Team, MIRP2.color);
+		MIRP2.color = NoColor;
+	}
+	
 	//UX
-	Haptic.run(currentTime);
-	RGB.run(currentTime);
+	//Haptic.run(currentTime);
+	//RGB.run(currentTime);
 }
 
 void Error(const char* message)
 {
 	RGB.setLed(All, Red, B_60, Blink);
 	RGB.setLed(Power, Red, B_60, Blink);
-	Debugger.out(MainProgram, message);
 	exit(1);
 }
 
@@ -183,8 +194,8 @@ void reset(boolean DFU)
 	if(DFU)
 		MCUSR = _BV(EXTRF); //Set reset flag to External Reset (run bootloader)
 	else
-		//MCUSR = _BV(PORF);  //Set reset flag to Power On Reset (skip to main program)
-		MCUSR = 0;		    //Clear reset flags (run bootloader [for debugging])
+		MCUSR = _BV(PORF);  //Set reset flag to Power On Reset (skip to main program)
+		//MCUSR = 0;		    //Clear reset flags (run bootloader [for debugging])
 		
 	EIND = 1;			    //Jump address high
 	asm volatile
@@ -195,17 +206,4 @@ void reset(boolean DFU)
 		"eijmp\n"		    //Jump to bootloader
 		:: "r" (DFU)
 	);
-}
-
-void debug_programming_hook()
-{
-	uint8_t nbytes = (uint8_t)Serial2.available();
-	while(nbytes--)
-	{
-		uint8_t data = Serial2.read();
-		if(data == 0x55)
-			reset();
-		//if(data == 0x43)
-			//XBee.connect(player_id, 0xEEEE);
-	}
 }

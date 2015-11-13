@@ -20,8 +20,6 @@ void BluetoothClass::init()
 	command("SM", "0"); //sets to slave mode
 	command("SY", "4"); //sets TX power to max
 	exit_at_mode();
-	
-	Debugger.out(BluetoothLibrary, Initialized);
 }
 
 void BluetoothClass::enter_at_mode()

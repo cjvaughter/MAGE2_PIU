@@ -8,7 +8,6 @@
 #define BLUETOOTH_h
 
 #include <Arduino.h>
-#include <Debugger.h>
 
 #define BTDelimiter 0x3C
 #define ACK 0xFF
