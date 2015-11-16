@@ -15,8 +15,8 @@
 #define F_CARRIER 38000L
 #define BIT_TIME 15L
 
-const uint16_t BitPeriod = (uint16_t)((F_CPU / (F_CARRIER / BIT_TIME)) / 1);
-const uint16_t HalfBitPeriod = (uint16_t)(BitPeriod / 2L);
+const uint16_t BitPeriod = (uint16_t)(F_CPU / (F_CARRIER / BIT_TIME));
+const uint16_t HalfBitPeriod = (uint16_t)(F_CPU / (F_CARRIER / (BIT_TIME / 2)));
 
 class MIRP2Class
 {

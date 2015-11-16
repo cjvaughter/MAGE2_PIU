@@ -11,6 +11,8 @@ MIRP2Class MIRP2;
 
 void MIRP2Class::init()
 {
+	DDRD |= 0x04;
+	
 	DDRK &= ~(0x0F);		//Set pins to input
 	PORTK |= 0x0F;			//Enable pull-up resistors
 
@@ -35,8 +37,13 @@ void MIRP2Class::setPinChange()
 {
 	byte sreg = SREG;
 	cli();
+	
 	TIMSK3 &= ~(1 << OCIE3A); //Disable CTC interrupt
+	TCCR3B = 0;				//Disable Timer
+	
+	PCMSK2 = 0x0F;			//Enable PCINT 16-19
 	PCICR |= (1 << PCIE2);	//Enable PCINT2
+	
 	SREG = sreg;
 }
 
@@ -52,12 +59,16 @@ void MIRP2Class::setTimer(boolean half)
 		OCR3A = BitPeriod;
 
 	TCNT3 = 0;				 //Reset counter
+	TCCR3A = 0;				//CTC mode
+	TCCR3B = (1 << WGM12) | (1 << CS10); //set up prescaler of 1 and CTC mode
 	TIMSK3 |= (1 << OCIE3A); //Enable CTC interrupt
+	
 	SREG = sreg;
 }
 
 void MIRP2Class::decode()
 {
+	PORTD |= 0x04;
 	uint8_t pinValue = 0;
 	uint8_t pins = ~PINK;
 	switch (direction)
@@ -79,7 +90,7 @@ void MIRP2Class::decode()
 	switch (step)
 	{
 		case 0:
-			setTimer(); //wait for whole bit now
+			setTimer(false); //wait for whole bit now
 			startNibble = pinValue << 3;
 			step++;
 			break;
@@ -107,14 +118,13 @@ void MIRP2Class::decode()
 			else
 			{
 				GPIO_odd = pinValue;
-				//if (GPIO_even == GPIO_odd)
-				//{
-					//Serial.println("BAD ENCODING");
-					//reset();
-					//break;
-				//}
-				//else
-				//{
+				if (GPIO_even == GPIO_odd)
+				{
+					reset();
+					break;
+				}
+				else
+				{
 					if (bitPos == 7)
 					{
 						data[byteCount] = (GPIO_even << bitPos);
@@ -137,11 +147,12 @@ void MIRP2Class::decode()
 						reset();
 						break;
 					}
-				//}
+				}
 			}
 			step++;
 			break;
 	}
+	PORTD &= ~(0x04);
 }
 
 void MIRP2Class::validate()
@@ -159,29 +170,25 @@ void MIRP2Class::validate()
 
 ISR(PCINT2_vect)
 {
+	PORTD |= 0x04;
 	uint8_t pins = ~(PINK & 0x0F);
 	uint8_t direction = NoDirection;
-	
-	sei();
-	RGB.setLed(Team, Yellow);
-	cli();
 
 	if (pins & 0x08)
 		direction = Front;
-	/*
 	else if (pins & 0x04)
 		direction = Back;
 	else if (pins & 0x02)
 		direction = Right;
 	else if (pins & 0x01)
 		direction = Left;
-		*/
 
 	if (direction != NoDirection)
 	{
 		MIRP2.direction = direction;
 		MIRP2.setTimer(true); //wait for half of a bit
 	}
+	PORTD &= ~(0x04);
 }
 
 ISR(TIMER3_COMPA_vect)

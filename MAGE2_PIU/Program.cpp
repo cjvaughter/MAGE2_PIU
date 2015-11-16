@@ -41,13 +41,9 @@ void setup()
 	*/
 
 	//Haptic.init();
-	//MIRP2.init();
+	MIRP2.init();
 	//XBee.init();
-
-	if(Bluetooth.init())
-		RGB.setLed(Team, Green);
-	else
-		RGB.setLed(Team, Red);
+	if(Bluetooth.init()) RGB.setLed(HealthBar, Blue);
 }
 
 void loop()
@@ -146,40 +142,35 @@ void loop()
 		Bluetooth.msgReady = false;
 	}
 	*/
+	if(Serial2.available())
+	{
+		RGB.setLed(Team, Yellow);
+		if(Serial2.read() == 0x42) RGB.setLed(Team, Blue);
+	}
+	else
+	{
+		Serial2.println("Dickbutt");
+		delay(500);
+	}
 	
-	//if(MIRP2.msgReady && state != Dead)
-	//{
-		//cli();
-		/*
+	if(MIRP2.msgReady && state != Dead)
+	{
+		cli();
 		XBee.tx_data[0] = Spell_RX;
 		XBee.tx_data[1] = MIRP2.data[0];
 		XBee.tx_data[2] = MIRP2.data[1];
 		XBee.tx_data[3] = MIRP2.data[2];
 		XBee.tx_data[4] = MIRP2.data[3];
 		XBee.tx_data[5] = MIRP2.data[4];
-		*/
-		/*lastDirection = MIRP2.direction;
+		lastDirection = MIRP2.direction;
 		MIRP2.msgReady = false;
 		sei();
-		
-		RGB.setDirection(Red, lastDirection, currentTime);
-		
-		RGB.setLed(Team, Green);
-		delay(500);
-		RGB.setLed(Team, NoColor);
-		//XBee.Encode(6);
-	}*/
+		XBee.Encode(6);
+	}
 	
 	//UX
 	//Haptic.run(currentTime);
 	//RGB.run(currentTime);
-	
-	uint8_t data = Serial2.read();
-	if(data == 0x0D) RGB.setLed(Team, Cyan);
-	else if (data != 0xFF) RGB.setLed(Team, Blue);
-	
-	//Serial2.println("MCU TEST");
-	//delay(500);
 }
 
 void Error(const char* message)

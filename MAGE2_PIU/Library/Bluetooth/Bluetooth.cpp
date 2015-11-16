@@ -12,6 +12,7 @@ boolean BluetoothClass::init()
 {
 	DDRD |= 0xF0;
 	PORTD |= 0xB0;
+	delay(500);
 	
 	BT.begin(115200); //factory default BAUD rate
 	
@@ -33,18 +34,18 @@ boolean BluetoothClass::enter_at_mode()
 {
 	BT.print("$$$\r");
 	BT.flush();
-	//return wait_for_char(0x20);
-	delay(250);
-	return true;
+	return wait_for_char(0x20);
+	//delay(250);
+	//return true;
 }
 
 boolean BluetoothClass::exit_at_mode()
 {
 	BT.print("---\r");
 	BT.flush();
-	//return wait_for_char(0x0D);
-	delay(250);
-	return true;
+	return wait_for_char(0x0D);
+	//delay(250);
+	//return true;
 }
 
 boolean BluetoothClass::command(const char* cmd, const char* data)
@@ -54,9 +55,9 @@ boolean BluetoothClass::command(const char* cmd, const char* data)
 	BT.print(data);
 	BT.print("\r");
 	BT.flush();
-	//return wait_for_char(0x20);
-	delay(250);
-	return true;
+	return wait_for_char(0x20);
+	//delay(250);
+	//return true;
 }
 
 boolean BluetoothClass::wait_for_char(char data)
