@@ -40,15 +40,19 @@ void setup()
 	}
 	*/
 
-	//Bluetooth.init();
 	//Haptic.init();
-	MIRP2.init();
+	//MIRP2.init();
 	//XBee.init();
+
+	if(Bluetooth.init())
+		RGB.setLed(Team, Green);
+	else
+		RGB.setLed(Team, Red);
 }
 
 void loop()
 {
-	currentTime = millis();
+	//currentTime = millis();
 	/*
 	//XBee transactions 
 	XBee.run(currentTime);
@@ -143,10 +147,9 @@ void loop()
 	}
 	*/
 	
-	MIRP2.read();
-	if(MIRP2.msgReady && state != Dead)
-	{
-		cli();
+	//if(MIRP2.msgReady && state != Dead)
+	//{
+		//cli();
 		/*
 		XBee.tx_data[0] = Spell_RX;
 		XBee.tx_data[1] = MIRP2.data[0];
@@ -154,22 +157,29 @@ void loop()
 		XBee.tx_data[3] = MIRP2.data[2];
 		XBee.tx_data[4] = MIRP2.data[3];
 		XBee.tx_data[5] = MIRP2.data[4];
-		lastDirection = MIRP2.direction;
 		*/
+		/*lastDirection = MIRP2.direction;
 		MIRP2.msgReady = false;
 		sei();
-		//XBee.Encode(6);
+		
+		RGB.setDirection(Red, lastDirection, currentTime);
+		
 		RGB.setLed(Team, Green);
-	}
-	if(MIRP2.color != NoColor)
-	{
-		RGB.setLed(Team, MIRP2.color);
-		MIRP2.color = NoColor;
-	}
+		delay(500);
+		RGB.setLed(Team, NoColor);
+		//XBee.Encode(6);
+	}*/
 	
 	//UX
 	//Haptic.run(currentTime);
 	//RGB.run(currentTime);
+	
+	uint8_t data = Serial2.read();
+	if(data == 0x0D) RGB.setLed(Team, Cyan);
+	else if (data != 0xFF) RGB.setLed(Team, Blue);
+	
+	//Serial2.println("MCU TEST");
+	//delay(500);
 }
 
 void Error(const char* message)

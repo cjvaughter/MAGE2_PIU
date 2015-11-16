@@ -8,15 +8,15 @@
 #define MIRP2_h
 
 #include <Arduino.h>
-#include <Constants.h>
 #include <RGB.h>
+#include "Constants.h"
 
 #define PACKET_SIZE 6
+#define F_CARRIER 38000L
+#define BIT_TIME 15L
 
-const uint16_t delay_us = 395;
-const uint16_t halfDelay = delay_us / 2;
-const uint16_t OCR1A_2533Hz = F_CPU / 1000000L * delay_us - 1;
-const uint16_t OCR1A_halfBit = F_CPU / 1000000L * halfDelay - 1;
+const uint16_t BitPeriod = (uint16_t)((F_CPU / (F_CARRIER / BIT_TIME)) / 1);
+const uint16_t HalfBitPeriod = (uint16_t)(BitPeriod / 2L);
 
 class MIRP2Class
 {
@@ -24,11 +24,12 @@ class MIRP2Class
 		void init();
 		void setTimer(boolean half = false);
 		void decode();
-		void read();
 		volatile uint8_t data[PACKET_SIZE];
 		volatile boolean msgReady;
 		volatile uint8_t direction;
 		volatile uint8_t color;
+		uint8_t last;
+		uint8_t lastColor;
 
 	private:
 		void reset();
@@ -40,7 +41,6 @@ class MIRP2Class
 		uint8_t GPIO_odd;
 		uint8_t GPIO_even;
 		uint8_t bitPos;
-		boolean reading;
 };
 
 extern MIRP2Class MIRP2;

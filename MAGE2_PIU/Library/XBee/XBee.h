@@ -9,6 +9,8 @@
 
 #include <Arduino.h>
 
+#define XB Serial1
+
 //XBEE API frame definitions
 #define Delimiter 0x7e
 #define TX 0x10

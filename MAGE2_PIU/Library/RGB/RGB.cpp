@@ -30,6 +30,7 @@ void RGBClass::init()
 	I2C.writeReg(_address, GRAD_BLINK_REG, 0);
 	
 	setLed(All, NoColor);
+	delay(250);
 	setLed(Power, Red, B_100);
 }
 

@@ -28,6 +28,7 @@
 #include <avr/pgmspace.h>
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include <avr/common.h>
 
 #include "binary.h"
 

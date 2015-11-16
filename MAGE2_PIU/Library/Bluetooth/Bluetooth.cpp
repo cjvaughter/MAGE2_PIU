@@ -8,42 +8,70 @@
 
 BluetoothClass Bluetooth;
 
-void BluetoothClass::init()
+boolean BluetoothClass::init()
 {
+	DDRD |= 0xF0;
+	PORTD |= 0xB0;
+	
 	BT.begin(115200); //factory default BAUD rate
 	
-	enter_at_mode();
-	command("SN", "MAGE2_PIU"); //sets name
-	command("SG", "2"); //sets to BT classic mode
-	command("SA", "4"); //sets to pin code mode
-	command("SP", "1234"); //sets to pin code mode
-	command("SM", "0"); //sets to slave mode
-	command("SY", "4"); //sets TX power to max
-	exit_at_mode();
+	if(enter_at_mode())
+	{
+		command("SN", "MAGE2_PIU"); //sets name
+		command("SG", "2"); //sets to BT classic mode
+		command("SA", "4"); //sets to pin code mode
+		command("SP", "1234"); //sets to pin code mode
+		command("SM", "0"); //sets to slave mode
+		command("SY", "4"); //sets TX power to max
+		exit_at_mode();
+		return true;
+	}
+	return false;
 }
 
-void BluetoothClass::enter_at_mode()
+boolean BluetoothClass::enter_at_mode()
 {
 	BT.print("$$$\r");
 	BT.flush();
-	while(BT.read() != 0x0D);
+	//return wait_for_char(0x20);
+	delay(250);
+	return true;
 }
 
-void BluetoothClass::exit_at_mode()
+boolean BluetoothClass::exit_at_mode()
 {
 	BT.print("---\r");
 	BT.flush();
-	while(BT.read() != 0x0D);
+	//return wait_for_char(0x0D);
+	delay(250);
+	return true;
 }
 
-void BluetoothClass::command(const char* cmd, const char* data)
+boolean BluetoothClass::command(const char* cmd, const char* data)
 {
 	BT.print(cmd);
 	BT.print(",");
 	BT.print(data);
 	BT.print("\r");
 	BT.flush();
-	while(BT.read() != 0x0D);
+	//return wait_for_char(0x20);
+	delay(250);
+	return true;
+}
+
+boolean BluetoothClass::wait_for_char(char data)
+{
+	if(BT.read() == data)
+	return true; //sweet
+	
+	uint8_t count = 50;
+	while(count--)
+	{
+		delay(1);
+		if(BT.read() == data)
+		return true; //not bad
+	}
+	return false; //you tried
 }
 
 void BluetoothClass::run()
