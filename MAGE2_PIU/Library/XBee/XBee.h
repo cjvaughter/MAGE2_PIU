@@ -10,6 +10,7 @@
 #include <Arduino.h>
 
 #define XB Serial1
+#define BFR_SIZE 32
 
 //XBEE API frame definitions
 #define Delimiter 0x7e
@@ -34,6 +35,8 @@
 #define Coordinator7 0x77
 #define Coordinator8 0xC3
 #define SendChecksum 0xCF
+
+
 
 enum XBeeMsg
 {
@@ -67,15 +70,15 @@ class XBeeClass
 		void wait_for_cr();
 		void Decode(uint8_t data);
 		void Encode(uint8_t length);
-		uint8_t* tx_data;
+		uint8_t tx_data[BFR_SIZE];
 		boolean connected;
 			
 	private:
 		boolean _msgReady;
 		boolean _busy;
-		uint8_t* rx_data;
+		uint8_t rx_data[BFR_SIZE];
 		uint8_t rx_length;
-		uint8_t* tx_bfr;
+		uint8_t tx_bfr[TX_Header + BFR_SIZE];
 		uint8_t _step;
 		uint16_t _length;
 		uint8_t _checksum;

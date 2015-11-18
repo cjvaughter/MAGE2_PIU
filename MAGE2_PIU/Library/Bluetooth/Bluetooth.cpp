@@ -9,70 +9,66 @@
 BluetoothClass Bluetooth;
 
 boolean BluetoothClass::init()
-{
-	DDRD |= 0xF0;
-	PORTD |= 0xB0;
-	delay(500);
+{	
+	connected = false;
+	uint8_t error = 0;	
 	
-	BT.begin(115200); //factory default BAUD rate
+	DDRF |= 0x08;
+	PORTF |= 0x08;
 	
-	if(enter_at_mode())
+	delay(500); //for module to start up
+	
+	for(uint32_t baud = 1200; baud < 115200; baud *= 2)
 	{
-		command("SN", "MAGE2_PIU"); //sets name
-		command("SG", "2"); //sets to BT classic mode
-		command("SA", "4"); //sets to pin code mode
-		command("SP", "1234"); //sets to pin code mode
-		command("SM", "0"); //sets to slave mode
-		command("SY", "4"); //sets TX power to max
-		exit_at_mode();
-		return true;
+		BT.begin(baud);
+		error = command("AT");
+		if(error == 0) break;
 	}
-	return false;
-}
+	if(error) return false;
+	
+	error += command("ROLE", "0");
+	error += command("NAME", "MAGE2_PIU");
+	error += command("PSWD", "1234");
+	error += command("UART", "38400,0,0");
+	PORTF &= ~(0x08);
+	error += command("RESET");
 
-boolean BluetoothClass::enter_at_mode()
-{
-	BT.print("$$$\r");
-	BT.flush();
-	return wait_for_char(0x20);
-	//delay(250);
-	//return true;
-}
-
-boolean BluetoothClass::exit_at_mode()
-{
-	BT.print("---\r");
-	BT.flush();
-	return wait_for_char(0x0D);
-	//delay(250);
-	//return true;
+	return (error == 0);
 }
 
 boolean BluetoothClass::command(const char* cmd, const char* data)
 {
+	BT.print("AT+");
 	BT.print(cmd);
-	BT.print(",");
+	BT.print("=");
 	BT.print(data);
-	BT.print("\r");
+	BT.print("\r\n");
 	BT.flush();
-	return wait_for_char(0x20);
-	//delay(250);
-	//return true;
+	return wait_for_lf();
 }
 
-boolean BluetoothClass::wait_for_char(char data)
+boolean BluetoothClass::command(const char* cmd)
 {
-	if(BT.read() == data)
-	return true; //sweet
+	BT.print("AT+");
+	BT.print(cmd);
+	BT.print("\r\n");
+	BT.flush();
+	return wait_for_lf();
+}
+
+boolean BluetoothClass::wait_for_lf()
+{
+	if(BT.read() == 0x0A)
+		return false; //sweet
 	
-	uint8_t count = 50;
+	uint8_t count = 100;
 	while(count--)
 	{
 		delay(1);
-		if(BT.read() == data)
-		return true; //not bad
+		if(BT.read() == 0x0A)
+			return false; //not bad
 	}
-	return false; //you tried
+	return true; //you tried
 }
 
 void BluetoothClass::run()

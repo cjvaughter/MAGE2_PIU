@@ -195,38 +195,31 @@ void RGBClass::showHealth()
 
 void RGBClass::setDirection(uint8_t color, uint8_t direction, uint64_t time, boolean stunned)
 {
-	switch(direction)
+	setLed(HealthBar, NoColor);
+	
+	switch (direction)
 	{
 		case Front:
-			setLed(Health4, color);
-			setLed(Health3, Red);
-			setLed(Health2, Red);
-			setLed(Health1, color);
+			setLed(Health3, color);
+			setLed(Health2, color);
 			break;
 		case Back:
-			setLed(Health4, Red);
-			setLed(Health3, color);
-			setLed(Health2, color);
-			setLed(Health1, Red);
-			break;
-		case Left:
 			setLed(Health4, color);
-			setLed(Health3, color);
-			setLed(Health2, color);
-			setLed(Health1, Red);
-			break;
-		case Right:
-			setLed(Health4, Red);
-			setLed(Health3, color);
-			setLed(Health2, color);
 			setLed(Health1, color);
 			break;
-		case NoDirection:
-			setLed(HealthBar, Red);
+		case Left:
+			setLed(Health1, color);
+			break;
+		case Right:
+			setLed(Health4, color);
 			break;
 	}
+	
 	_stunned = stunned;
+	_direction = direction;
 	_directionActive = true;
+	_directionState = 0;
+	_directionColor = color;
 	_directionTime = time + 1000;
 }
 
@@ -253,15 +246,138 @@ void RGBClass::run(uint64_t time)
 	{
 		if(time >= _directionTime)
 		{
-			if(_stunned)
+			setLed(HealthBar, NoColor);
+			switch(_directionState)
 			{
-				setLed(HealthBar, Blue);
+				case 0:
+					switch (_direction)
+					{
+						case Front:
+							setLed(Health4, _directionColor);
+							setLed(Health1, _directionColor);
+							break;
+						case Back:
+							setLed(Health2, _directionColor);
+							setLed(Health3, _directionColor);
+							break;
+						case Left:
+							setLed(Health1, _directionColor);
+							setLed(Health2, _directionColor);
+							break;
+						case Right:
+							setLed(Health4, _directionColor);
+							setLed(Health3, _directionColor);
+							break;
+					}
+					_directionState++;
+					break;
+				case 1:
+					switch (_direction)
+					{
+						case Front: case Back:
+							//do nothing
+							break;
+						case Left:
+							setLed(Health1, _directionColor);
+							setLed(Health2, _directionColor);
+							setLed(Health3, _directionColor);
+							break;
+						case Right:
+							setLed(Health4, _directionColor);
+							setLed(Health3, _directionColor);
+							setLed(Health2, _directionColor);
+							break;
+					}
+					_directionState++;
+					break;
+				case 2:
+					switch (_direction)
+					{
+						case Front:
+							setLed(Health3, _directionColor);
+							setLed(Health2, _directionColor);
+							break;
+						case Back:
+							setLed(Health4, _directionColor);
+							setLed(Health1, _directionColor);
+							break;
+						case Left: case Right:
+							setLed(Health1, _directionColor);
+							setLed(Health2, _directionColor);
+							setLed(Health3, _directionColor);
+							setLed(Health4, _directionColor);
+							break;
+					}
+					_directionState++;
+					break;
+				case 3:
+					switch (_direction)
+					{
+						case Front:
+							setLed(Health1, _directionColor);
+							setLed(Health4, _directionColor);
+							break;
+						case Back:
+							setLed(Health2, _directionColor);
+							setLed(Health3, _directionColor);
+							break;
+						case Left:
+							setLed(Health2, _directionColor);
+							setLed(Health3, _directionColor);
+							setLed(Health4, _directionColor);
+							break;
+						case Right:
+							setLed(Health3, _directionColor);
+							setLed(Health2, _directionColor);
+							setLed(Health1, _directionColor);
+							break;
+					}
+					_directionState++;
+					break;
+				case 4:
+					switch (_direction)
+					{
+						case Front: case Back:
+							//do nothing
+							break;
+						case Left:
+							setLed(Health3, _directionColor);
+							setLed(Health4, _directionColor);
+							break;
+						case Right:
+							setLed(Health2, _directionColor);
+							setLed(Health1, _directionColor);
+							break;
+					}
+					_directionState++;
+					break;
+				case 5:
+					switch (_direction)
+					{
+						case Front: case Back:
+							_directionState++;
+							break;
+						case Left:
+							setLed(Health4, _directionColor);
+							break;
+						case Right:
+							setLed(Health1, _directionColor);
+							break;
+					}
+					_directionState++;
+					break;
+				case 6:
+					//do nothing
+					_directionState++;
+					break;
+				case 7:
+					if(_stunned)
+						setLed(HealthBar, Blue);
+					else
+						setHealth(_health);
+					_directionActive = false;
+					break;
 			}
-			else
-			{
-				setHealth(_health);
-			}
-			_directionActive = false;
 		}
 	}
 	else if(_effectActive)

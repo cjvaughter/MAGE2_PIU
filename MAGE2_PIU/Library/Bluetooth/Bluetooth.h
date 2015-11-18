@@ -9,7 +9,7 @@
 
 #include <Arduino.h>
 
-#define BT Serial2
+#define BT Serial3
 #define BTDelimiter 0x3C
 #define ACK 0xFF
 #define Check 0xFF
@@ -21,7 +21,8 @@ class BluetoothClass
 	boolean enter_at_mode();
 	boolean exit_at_mode();
 	boolean command(const char* cmd, const char* data);
-	boolean wait_for_char(char data);
+	boolean command(const char* cmd);
+	boolean wait_for_lf();
 	void run();
 	void write();
 	uint8_t color;
@@ -29,6 +30,7 @@ class BluetoothClass
 	uint8_t rx_func, tx_func;
 	uint8_t device_status;
 	boolean msgReady;
+	boolean connected;
 	
 	private:
 	uint8_t _step;

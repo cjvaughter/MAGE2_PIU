@@ -9,7 +9,7 @@
 
 uint8_t state = Alive;
 uint64_t currentTime = 0;
-uint16_t player_id = 0xCCCC;
+uint16_t player_id = 0;
 uint8_t team = 0;     			    
 uint8_t lastDirection = NoDirection;
 	
@@ -20,6 +20,7 @@ void setup()
 {
 	sei();
 	RGB.init();
+	
 	/*
 	if(Settings.init()) 
 	{
@@ -39,11 +40,12 @@ void setup()
 		Error("No SD card!");
 	}
 	*/
-
+	
 	//Haptic.init();
 	MIRP2.init();
 	//XBee.init();
-	if(Bluetooth.init()) RGB.setLed(HealthBar, Blue);
+	if(!Bluetooth.init())
+		Error("Could not communicate with Bluetooth module.");
 }
 
 void loop()
@@ -126,7 +128,7 @@ void loop()
 	}
 	*/
 	//Bluetooth transactions
-	/*
+	
 	Bluetooth.run();
 	if(Bluetooth.msgReady)
 	{
@@ -134,24 +136,19 @@ void loop()
 		{
 			//process messages here
 			case 1:
-				XBee.connect(player_id, Bluetooth.device_id);
+				Bluetooth.connected = true;
+				//XBee.connect(player_id, Bluetooth.device_id);
+				RGB.setLed(Team, Blue);
 				break;
 			default:
+				RGB.setLed(Team, Red);
+				delay(100);
+				RGB.setLed(Team, NoColor);
 				break;
 		}
 		Bluetooth.msgReady = false;
 	}
-	*/
-	if(Serial2.available())
-	{
-		RGB.setLed(Team, Yellow);
-		if(Serial2.read() == 0x42) RGB.setLed(Team, Blue);
-	}
-	else
-	{
-		Serial2.println("Dickbutt");
-		delay(500);
-	}
+	
 	
 	if(MIRP2.msgReady && state != Dead)
 	{
@@ -165,7 +162,10 @@ void loop()
 		lastDirection = MIRP2.direction;
 		MIRP2.msgReady = false;
 		sei();
-		XBee.Encode(6);
+		//XBee.Encode(6);
+		RGB.setLed(Team, Green);
+		delay(500);
+		RGB.setLed(Team, NoColor);
 	}
 	
 	//UX
@@ -175,16 +175,23 @@ void loop()
 
 void Error(const char* message)
 {
-	RGB.setLed(All, Red, B_60, Blink);
-	RGB.setLed(Power, Red, B_60, Blink);
-	exit(1);
+	Serial2.println(message);
+	while(1)
+	{
+		RGB.setLed(All, Red, B_60);
+		RGB.setLed(Power, Red, B_100);
+		delay(300);
+		RGB.setLed(All, NoColor);
+		RGB.setLed(Power, NoColor);
+		delay(300);
+	}
 }
 
 void reset(boolean DFU)
 {
 	RGB.setBlinkRate();
 	RGB.setLed(All, NoColor);
-	RGB.setLed(Power, Red, B_60, Blink);
+	RGB.setLed(Power, Red, B_100, Blink);
 	if(DFU)
 		RGB.setLed(Team, Green, B_60, Blink);
 	else

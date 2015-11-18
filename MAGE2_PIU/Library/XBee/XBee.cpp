@@ -16,9 +16,6 @@ void XBeeClass::init()
 	_msgReady = false;
 	_msg_index = 0;
 	_busy = false;
-	tx_bfr = new uint8_t[50];
-	tx_data = new uint8_t[31];
-	rx_data = new uint8_t[31];
 	
 	tx_bfr[0] = (Delimiter);
 	tx_bfr[3] = (TX);
@@ -105,7 +102,6 @@ void XBeeClass::api_mode()
 {
 	enter_at_mode();
 	XB.print("ATAP 2\r");
-	//XB.print("ATFR\r");
 	XB.flush();
 	wait_for_cr();
 	exit_at_mode();
@@ -131,7 +127,7 @@ void XBeeClass::wait_for_cr()
 	if(XB.read() == 0x0D)
 		return; //sweet
 	
-	uint8_t count = 10;
+	uint8_t count = 100;
 	while(count--)
 	{
 		delay(1);

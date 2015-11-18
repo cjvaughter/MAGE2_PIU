@@ -11,14 +11,8 @@ MIRP2Class MIRP2;
 
 void MIRP2Class::init()
 {
-	DDRD |= 0x04;
-	
 	DDRK &= ~(0x0F);		//Set pins to input
 	PORTK |= 0x0F;			//Enable pull-up resistors
-
-	PCMSK2 = 0x0F;			//Enable PCINT 16-19
-	TCCR3A = 0;				//CTC mode
-	TCCR3B = (1 << WGM12) | (1 << CS10); //set up prescaler of 1 and CTC mode
 
 	msgReady = false;
 	direction = NoDirection;
@@ -39,10 +33,10 @@ void MIRP2Class::setPinChange()
 	cli();
 	
 	TIMSK3 &= ~(1 << OCIE3A); //Disable CTC interrupt
-	TCCR3B = 0;				//Disable Timer
+	TCCR3B = 0;				  //Disable Timer
 	
-	PCMSK2 = 0x0F;			//Enable PCINT 16-19
-	PCICR |= (1 << PCIE2);	//Enable PCINT2
+	PCMSK2 = 0x0F;			  //Enable PCINT 16-19
+	PCICR |= (1 << PCIE2);	  //Enable PCINT2
 	
 	SREG = sreg;
 }
@@ -51,24 +45,24 @@ void MIRP2Class::setTimer(boolean half)
 {
 	byte sreg = SREG;
 	cli();
-	PCICR &= ~(1 << PCIE2);	//Disable PCINT2
+	PCICR &= ~(1 << PCIE2);				 //Disable PCINT2
 
 	if (half)
 		OCR3A = HalfBitPeriod;
 	else
 		OCR3A = BitPeriod;
 
-	TCNT3 = 0;				 //Reset counter
-	TCCR3A = 0;				//CTC mode
+	TCNT3 = 0;							 //Reset counter
+	TCCR3A = 0;							 //No compare output pins & CTC mode
 	TCCR3B = (1 << WGM12) | (1 << CS10); //set up prescaler of 1 and CTC mode
-	TIMSK3 |= (1 << OCIE3A); //Enable CTC interrupt
+	TIMSK3 |= (1 << OCIE3A);			 //Enable CTC interrupt
+	TIFR3 = 0;							 //Clear any pending timer3 interrupts
 	
 	SREG = sreg;
 }
 
 void MIRP2Class::decode()
 {
-	PORTD |= 0x04;
 	uint8_t pinValue = 0;
 	uint8_t pins = ~PINK;
 	switch (direction)
@@ -90,7 +84,7 @@ void MIRP2Class::decode()
 	switch (step)
 	{
 		case 0:
-			setTimer(false); //wait for whole bit now
+			setTimer(); //wait for whole bit now
 			startNibble = pinValue << 3;
 			step++;
 			break;
@@ -152,7 +146,6 @@ void MIRP2Class::decode()
 			step++;
 			break;
 	}
-	PORTD &= ~(0x04);
 }
 
 void MIRP2Class::validate()
@@ -170,7 +163,6 @@ void MIRP2Class::validate()
 
 ISR(PCINT2_vect)
 {
-	PORTD |= 0x04;
 	uint8_t pins = ~(PINK & 0x0F);
 	uint8_t direction = NoDirection;
 
@@ -188,7 +180,6 @@ ISR(PCINT2_vect)
 		MIRP2.direction = direction;
 		MIRP2.setTimer(true); //wait for half of a bit
 	}
-	PORTD &= ~(0x04);
 }
 
 ISR(TIMER3_COMPA_vect)

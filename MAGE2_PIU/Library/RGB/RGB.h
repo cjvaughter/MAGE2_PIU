@@ -112,6 +112,9 @@ class RGBClass
 		uint8_t _health;
 		uint64_t _directionTime;
 		boolean _directionActive;
+		uint8_t _direction;
+		uint8_t _directionColor;
+		uint8_t _directionState;
 		boolean _stunned;
 		uint64_t _effectTime;
 		boolean _effectActive;
