@@ -12,6 +12,8 @@ uint64_t currentTime = 0;
 uint16_t player_id = 0;
 uint8_t team = 0;     			    
 uint8_t lastDirection = NoDirection;
+
+uint64_t nextTime = 0;
 	
 void Error(const char* message);
 void reset(boolean DFU = false);
@@ -46,11 +48,24 @@ void setup()
 	//XBee.init();
 	if(!Bluetooth.init())
 		Error("Could not communicate with Bluetooth module.");
+		
+	RGB.setHealth(100);
+	RGB.showHealth();
 }
 
 void loop()
 {
-	//currentTime = millis();
+	currentTime = millis();
+	
+	if(currentTime > nextTime)
+	{
+		nextTime = currentTime + 1500;
+		if(lastDirection > Right)
+			lastDirection = Front;
+		else
+			lastDirection++;
+		RGB.setDirection(Red, lastDirection, currentTime);
+	}
 	/*
 	//XBee transactions 
 	XBee.run(currentTime);
@@ -128,7 +143,7 @@ void loop()
 	}
 	*/
 	//Bluetooth transactions
-	
+	/*
 	Bluetooth.run();
 	if(Bluetooth.msgReady)
 	{
@@ -148,7 +163,7 @@ void loop()
 		}
 		Bluetooth.msgReady = false;
 	}
-	
+	*/
 	
 	if(MIRP2.msgReady && state != Dead)
 	{
@@ -170,7 +185,7 @@ void loop()
 	
 	//UX
 	//Haptic.run(currentTime);
-	//RGB.run(currentTime);
+	RGB.run(currentTime);
 }
 
 void Error(const char* message)
