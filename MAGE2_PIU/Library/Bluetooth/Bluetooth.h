@@ -18,6 +18,7 @@ class BluetoothClass
 {
 	public:
 	boolean init();
+	boolean find_baud();
 	boolean enter_at_mode();
 	boolean exit_at_mode();
 	boolean command(const char* cmd, const char* data);
@@ -25,6 +26,7 @@ class BluetoothClass
 	boolean wait_for_lf();
 	void run();
 	void write();
+	void ack();
 	uint8_t color;
 	uint16_t device_id;
 	uint8_t rx_func, tx_func;
@@ -36,7 +38,6 @@ class BluetoothClass
 	uint8_t _step;
 	uint16_t _sum;
 	uint8_t _checksum;
-	void ack();
 };
 
 extern BluetoothClass Bluetooth;

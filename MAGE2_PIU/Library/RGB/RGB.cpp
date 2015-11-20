@@ -246,9 +246,7 @@ void RGBClass::run(uint64_t time)
 	{
 		if(time >= _directionTime)
 		{
-			if(_direction != Front && _direction != Back)
-				setLed(HealthBar, NoColor);
-				
+			setLed(HealthBar, NoColor);
 			switch(_directionState)
 			{
 				case 0:
@@ -271,8 +269,13 @@ void RGBClass::run(uint64_t time)
 				case 1:
 					switch (_direction)
 					{
-						case Front: case Back:
-							//do nothing
+						case Front:
+							setLed(Health3, _directionColor);
+							setLed(Health2, _directionColor);
+							break;
+						case Back:
+							setLed(Health4, _directionColor);
+							setLed(Health1, _directionColor);
 							break;
 						case Left:
 							setLed(Health1, _directionColor);
@@ -290,15 +293,8 @@ void RGBClass::run(uint64_t time)
 				case 2:
 					switch (_direction)
 					{
-						case Front:
-							setLed(HealthBar, NoColor);
-							setLed(Health4, _directionColor);
-							setLed(Health1, _directionColor);
-							break;
-						case Back:
-							setLed(HealthBar, NoColor);
-							setLed(Health2, _directionColor);
-							setLed(Health3, _directionColor);
+						case Front: case Back:
+							//do nothing
 							break;
 						case Left: case Right:
 							setLed(Health1, _directionColor);
@@ -312,8 +308,13 @@ void RGBClass::run(uint64_t time)
 				case 3:
 					switch (_direction)
 					{
-						case Front: case Back:
-							//do nothing
+						case Front:
+							setLed(Health3, _directionColor);
+							setLed(Health2, _directionColor);
+							break;
+						case Back:
+							setLed(Health4, _directionColor);
+							setLed(Health1, _directionColor);
 							break;
 						case Left:
 							setLed(Health2, _directionColor);
@@ -348,8 +349,13 @@ void RGBClass::run(uint64_t time)
 				case 5:
 					switch (_direction)
 					{
-						case Front: case Back:
-							//do nothing
+						case Front:
+							setLed(Health3, _directionColor);
+							setLed(Health2, _directionColor);
+							break;
+						case Back:
+							setLed(Health4, _directionColor);
+							setLed(Health1, _directionColor);
 							break;
 						case Left:
 							setLed(Health4, _directionColor);
@@ -361,15 +367,7 @@ void RGBClass::run(uint64_t time)
 					_directionState++;
 					break;
 				case 6:
-					switch (_direction)
-					{
-						case Front: case Back:
-							setLed(HealthBar, NoColor);
-							break;
-						case Left: case Right:
-							//do nothing
-							break;
-					}
+					//do nothing
 					_directionState++;
 					break;
 				case 7:

@@ -7,7 +7,7 @@
 #include <Settings.h>
 #include <XBee.h>
 
-uint8_t state = Alive;
+uint8_t state = Dead;
 uint64_t currentTime = 0;
 uint16_t player_id = 0;
 uint8_t team = 0;     			    
@@ -20,9 +20,10 @@ void reset(boolean DFU = false);
 	
 void setup()
 {
-	sei();
-	RGB.init();
+	Serial.begin(9600);
 	
+	RGB.init();
+	XBee.init();
 	/*
 	if(Settings.init()) 
 	{
@@ -42,21 +43,17 @@ void setup()
 		Error("No SD card!");
 	}
 	*/
-	
-	//Haptic.init();
+	Haptic.init();
 	MIRP2.init();
-	//XBee.init();
-	if(!Bluetooth.init())
-		Error("Could not communicate with Bluetooth module.");
-		
-	RGB.setHealth(100);
-	RGB.showHealth();
+	
+	//if(!Bluetooth.init())
+		//Error("Could not communicate with Bluetooth module.");
 }
 
 void loop()
 {
 	currentTime = millis();
-	
+	/*
 	if(currentTime > nextTime)
 	{
 		nextTime = currentTime + 1500;
@@ -66,7 +63,14 @@ void loop()
 			lastDirection++;
 		RGB.setDirection(Red, lastDirection, currentTime);
 	}
-	/*
+	*/
+	
+	if(!XBee.connected)
+	{
+		XBee.connect(0xCCCC, 0xEEEE);
+		delay(1000);
+	}
+	
 	//XBee transactions 
 	XBee.run(currentTime);
 	if(XBee.available())
@@ -77,14 +81,11 @@ void loop()
 				XBee.connected = true;
 				team = XBee.nextByte();
 				RGB.setLed(Team, team);
-				//Haptic.pulse(NoDirection, 1, 50, 50);
 				//tell weapon
 				break;
 			case Disconnect:
 				XBee.connected = false;
 				RGB.setLed(All, NoColor);
-				RGB.setLed(HealthBar, NoColor);
-				//Haptic.pulse(NoDirection, 1, 50, 50);
 				//tell weapon
 				break;
 			case Health:
@@ -92,7 +93,6 @@ void loop()
 				break;
 			case State:
 				state = XBee.nextByte();
-				//if (XBee.nextByte() == 1) lastDirection = NoDirection;
 				break;
 			case Effect:
 				RGB.setEffect(XBee.nextByte());
@@ -103,30 +103,27 @@ void loop()
 					case Alive:
 						RGB.showHealth();
 						RGB.setLed(Team, team);
-						Haptic.stop();
+						Haptic.pulse(NoDirection, 1, 120);
 						break;
 					case Damaged:
-						lastDirection++;
 						RGB.setDirection(NoColor, lastDirection, currentTime);
-						Haptic.pulse(lastDirection, 1, 1000);
+						Haptic.pulse(lastDirection, 1, 800);
 						break;
 					case Stunned:
-						lastDirection++;
 						RGB.setDirection(Blue, lastDirection, currentTime, true);
-						Haptic.pulse(lastDirection, 10, 1000, 500);
+						Haptic.pulse(lastDirection, 4, 120, 80);
 						break;
 					case Healed:
-						lastDirection++;
 						RGB.setDirection(Green, lastDirection, currentTime);
-						Haptic.pulse(lastDirection, 2, 400, 100);
+						Haptic.pulse(lastDirection, 2, 300, 100);
 						break;
 					case Dead:
 						RGB.setLed(HealthBar, Red);
-						Haptic.pulse(NoDirection, 1, 2000);
+						Haptic.pulse(NoDirection, 1, 1500);
 						break;
 				}
 				RGB.doEffect(currentTime);
-				if(lastDirection >= Right) lastDirection = NoDirection;
+				lastDirection = NoDirection;
 				//update weapon
 				break;
 			case DFU:
@@ -141,9 +138,8 @@ void loop()
 		if(!XBee.available())
 			XBee.heartbeat();
 	}
-	*/
+	
 	//Bluetooth transactions
-	/*
 	Bluetooth.run();
 	if(Bluetooth.msgReady)
 	{
@@ -153,7 +149,16 @@ void loop()
 			case 1:
 				Bluetooth.connected = true;
 				//XBee.connect(player_id, Bluetooth.device_id);
-				RGB.setLed(Team, Blue);
+				RGB.setLed(HealthBar, Blue);
+				break;
+			case 0x00:
+				//update heartbeat time
+				RGB.setLed(Team, Green);
+				delay(50);
+				RGB.setLed(Team, NoColor);
+				break;
+			case 0xFF:
+				//do nothing
 				break;
 			default:
 				RGB.setLed(Team, Red);
@@ -161,10 +166,10 @@ void loop()
 				RGB.setLed(Team, NoColor);
 				break;
 		}
+		Bluetooth.ack();
 		Bluetooth.msgReady = false;
 	}
-	*/
-	
+
 	if(MIRP2.msgReady && state != Dead)
 	{
 		cli();
@@ -177,20 +182,17 @@ void loop()
 		lastDirection = MIRP2.direction;
 		MIRP2.msgReady = false;
 		sei();
-		//XBee.Encode(6);
-		RGB.setLed(Team, Green);
-		delay(500);
-		RGB.setLed(Team, NoColor);
+		XBee.Encode(6);
 	}
 	
 	//UX
-	//Haptic.run(currentTime);
+	Haptic.run(currentTime);
 	RGB.run(currentTime);
 }
 
 void Error(const char* message)
 {
-	Serial2.println(message);
+	Serial.println(message);
 	while(1)
 	{
 		RGB.setLed(All, Red, B_60);
@@ -209,8 +211,6 @@ void reset(boolean DFU)
 	RGB.setLed(Power, Red, B_100, Blink);
 	if(DFU)
 		RGB.setLed(Team, Green, B_60, Blink);
-	else
-		RGB.setLed(Team, Purple);
 	
 	cli();				    //Don't interrupt me
 	
@@ -218,7 +218,6 @@ void reset(boolean DFU)
 		MCUSR = _BV(EXTRF); //Set reset flag to External Reset (run bootloader)
 	else
 		MCUSR = _BV(PORF);  //Set reset flag to Power On Reset (skip to main program)
-		//MCUSR = 0;		    //Clear reset flags (run bootloader [for debugging])
 		
 	EIND = 1;			    //Jump address high
 	asm volatile

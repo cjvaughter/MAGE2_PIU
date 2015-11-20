@@ -11,6 +11,8 @@ MIRP2Class MIRP2;
 
 void MIRP2Class::init()
 {
+	DDRB |= 0x04;
+	PORTB &= ~(0x04);
 	DDRK &= ~(0x0F);		//Set pins to input
 	PORTK |= 0x0F;			//Enable pull-up resistors
 
@@ -63,6 +65,7 @@ void MIRP2Class::setTimer(boolean half)
 
 void MIRP2Class::decode()
 {
+	PORTB |= 0x04;
 	uint8_t pinValue = 0;
 	uint8_t pins = ~PINK;
 	switch (direction)
@@ -94,6 +97,7 @@ void MIRP2Class::decode()
 			{
 				if (startNibble != 0x0C)
 				{
+					Serial.println("BAD START");
 					reset();
 					break;
 				}
@@ -114,6 +118,7 @@ void MIRP2Class::decode()
 				GPIO_odd = pinValue;
 				if (GPIO_even == GPIO_odd)
 				{
+					Serial.println("BAD ENCODING");
 					reset();
 					break;
 				}
@@ -146,6 +151,7 @@ void MIRP2Class::decode()
 			step++;
 			break;
 	}
+	PORTB &= ~(0x04);
 }
 
 void MIRP2Class::validate()
@@ -158,7 +164,10 @@ void MIRP2Class::validate()
 	if (0xFF - sum == data[PACKET_SIZE - 1])
 		msgReady = true;
 	else
+	{
+		Serial.println("BAD CHECKSUM");
 		msgReady = false;
+	}
 }
 
 ISR(PCINT2_vect)

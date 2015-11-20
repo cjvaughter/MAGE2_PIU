@@ -13,27 +13,48 @@ boolean BluetoothClass::init()
 	connected = false;
 	uint8_t error = 0;	
 	
+	DDRD |= 0x80;
+	PORTD &= ~(0x80);
+	
 	DDRF |= 0x08;
 	PORTF |= 0x08;
 	
 	delay(500); //for module to start up
 	
-	for(uint32_t baud = 1200; baud < 115200; baud *= 2)
-	{
-		BT.begin(baud);
-		error = command("AT");
-		if(error == 0) break;
-	}
-	if(error) return false;
+	//if(!find_baud()) return false;
 	
+	//error += command("RMAAD");
+	//error += command("ORGL");
+	//PORTF &= ~(0x08);
+	//error += command("RESET");
+	//if(error) return false;
+	//delay(2000);
+	
+	//PORTF |= 0x08;
+	//BT.begin(9600);
+	if(!find_baud()) return false;
+
+	error += command("RMAAD", "0");
 	error += command("ROLE", "0");
 	error += command("NAME", "MAGE2_PIU");
 	error += command("PSWD", "1234");
-	error += command("UART", "38400,0,0");
+	//error += command("CLASS", "020710"); //Class is Networking Wearable (Helmet)
 	PORTF &= ~(0x08);
 	error += command("RESET");
 
 	return (error == 0);
+}
+
+boolean BluetoothClass::find_baud()
+{
+	uint8_t error = 0;
+	for(uint32_t baud = 1200; baud < 115200; baud *= 2)
+	{
+		BT.begin(baud);
+		error = command("AT");
+		if(error == 0) return true;
+	}
+	return false;
 }
 
 boolean BluetoothClass::command(const char* cmd, const char* data)
@@ -77,6 +98,7 @@ void BluetoothClass::run()
 	while(nbytes--)
 	{
 		uint8_t data = BT.read();
+		Serial1.write(data);
 		
 		switch(_step)
 		{
@@ -89,10 +111,11 @@ void BluetoothClass::run()
 			break;
 		case 1:
 			rx_func = data;
+			_sum = data;
 			switch(rx_func)
 			{
 			case 0x00: case 0x02: case 0xFF:
-				_step = 255;
+				_step = 2;
 				break;
 			case 0x01:
 				_step = 2;
@@ -104,29 +127,29 @@ void BluetoothClass::run()
 			break;
 		case 2:
 			device_id = data<<8;
+			_sum += data;
 			_step++;
 			break;
 		case 3:
 			device_id |= data;
+			_sum += data;
 			_step++;
 			break;
 		case 4:
 			color = data;
+			_sum += data;
 			_step = 255;
 			break;
 		case 5:
 			device_status = data;
+			_sum += data;
 			_step++;
 			break;
 		case 255:
 			_checksum = data;
 			if (Check - _sum == _checksum)
 			{
-				if(rx_func != ACK)
-				{
-					msgReady = true;
-					ack();
-				}
+				msgReady = true;
 			}
 			_step = 0;
 			break;
@@ -151,5 +174,8 @@ void BluetoothClass::ack()
 {
 	BT.write(BTDelimiter);
 	BT.write(ACK);
+	BT.write(0x00);
+	BT.write(0x00);
+	BT.write(0x00);
 	BT.write(0x00);
 }
