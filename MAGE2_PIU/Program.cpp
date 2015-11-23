@@ -11,7 +11,7 @@ uint8_t state = Dead;
 uint8_t health = 0;
 uint8_t effect = 0;
 uint64_t currentTime = 0;
-uint16_t player_id = 0;
+uint16_t player_id = 0xABCD;
 uint8_t team = Red;     			    
 uint8_t lastDirection = NoDirection;
 
@@ -45,11 +45,11 @@ void setup()
 		Error("No SD card!");
 	}
 	*/
-	Haptic.init();
+	//Haptic.init();
 	MIRP2.init();
 	
-	//if(!Bluetooth.init())
-		//Error("Could not communicate with Bluetooth module.");
+	if(!Bluetooth.init())
+		Error("Could not communicate with Bluetooth module.");
 }
 
 void loop()
@@ -66,14 +66,21 @@ void loop()
 		RGB.setDirection(Red, lastDirection, currentTime);
 	}
 	*/
-	
+	/*
 	if(!XBee.connected)
 	{
 		XBee.connect(0xCCCC, 0xEEEE);
 		delay(1000);
 	}
-	
+	*/
 	//XBee transactions 
+	
+	if(Bluetooth.connected && !XBee.connected)
+	{
+		XBee.connect(player_id, 0xEEEE);
+		delay(1000);
+	}
+	
 	XBee.run(currentTime);
 	if(XBee.available())
 	{
@@ -82,12 +89,13 @@ void loop()
 			case Connect:
 				XBee.connected = true;
 				team = XBee.nextByte();
-				RGB.setLed(Team, team);
+				RGB.setLed(Team, team, B_100);
 				//tell weapon?
 				break;
 			case Disconnect:
 				XBee.connected = false;
 				RGB.setLed(All, NoColor);
+				delay(1000);
 				//tell weapon?
 				break;
 			case Health:
@@ -100,17 +108,25 @@ void loop()
 			case Effect:
 				effect = XBee.nextByte();
 				RGB.setEffect(effect);
+				RGB.doEffect();
 				break;
 			case Update:
 				switch(state)
 				{
 					case Alive:
-						RGB.showHealth();
-						RGB.setLed(Team, team);
-						Haptic.pulse(NoDirection, 1, 120);
+						if(effect == NoColor)
+						{
+							RGB.showHealth();
+							RGB.setLed(Team, team, B_100);
+							Haptic.pulse(NoDirection, 1, 120);
+						}
+						else
+						{
+							
+						}
 						break;
 					case Damaged:
-						RGB.setDirection(NoColor, lastDirection, currentTime);
+						RGB.setDirection(Red, lastDirection, currentTime);
 						Haptic.pulse(lastDirection, 1, 800);
 						break;
 					case Stunned:
@@ -126,7 +142,6 @@ void loop()
 						Haptic.pulse(NoDirection, 1, 1500);
 						break;
 				}
-				RGB.doEffect(currentTime);
 				lastDirection = NoDirection;
 				Bluetooth.update(health, state, effect);
 				break;
@@ -136,7 +151,7 @@ void loop()
 				break;
 			default:
 				//unrecognized message
-				RGB.setLed(Team, Red, Blink);
+				RGB.setLed(Team, Red, B_100, Blink);
 				XBee.discard();
 				break;
 		}
@@ -157,18 +172,17 @@ void loop()
 			case BTConnect:
 				Bluetooth.connected = true;
 				Bluetooth.device_id = Bluetooth.rx_data[0]<<8 | Bluetooth.rx_data[1];
-				XBee.connect(player_id, Bluetooth.device_id);
 				Bluetooth.ack();
-				//RGB blink healthbar for a second with Bluetooth.rx_data[2]
+				//RGB blink health bar for a second with Bluetooth.rx_data[2]
 				break;
 			case BTSpell_TX:
 				XBee.tx_data[0] = Spell_TX;
-				XBee.tx_data[1] = Bluetooth.data[0];
-				Xbee.Encode(2);
+				XBee.tx_data[1] = Bluetooth.rx_data[0];
 				Bluetooth.ack();
+				XBee.Encode(2);
 				break;
 			case BTUpdate:
-				//send Xbee msg
+				//send XBee message
 				Bluetooth.ack();
 				break;
 			default:
@@ -178,7 +192,7 @@ void loop()
 		Bluetooth.msgReady = false;
 	}
 
-	if(MIRP2.msgReady && state != Dead)
+	if(MIRP2.msgReady)
 	{
 		cli();
 		XBee.tx_data[0] = Spell_RX;
@@ -190,6 +204,10 @@ void loop()
 		lastDirection = MIRP2.direction;
 		MIRP2.msgReady = false;
 		sei();
+		RGB.setLed(Team, Green);
+		delay(100);
+		RGB.setLed(Team, Red);
+		
 		XBee.Encode(6);
 	}
 	
@@ -218,7 +236,7 @@ void reset(boolean DFU)
 	RGB.setLed(All, NoColor);
 	RGB.setLed(Power, Red, B_100, Blink);
 	if(DFU)
-		RGB.setLed(Team, Green, B_60, Blink);
+		RGB.setLed(Team, Green, B_100, Blink);
 	
 	cli();				    //Don't interrupt me
 	

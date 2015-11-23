@@ -103,7 +103,7 @@ class RGBClass
 		void setDirection(uint8_t color, uint8_t direction, uint64_t time, boolean stunned = false);
 		void blinkEffect(uint8_t color);
 		void setEffect(uint8_t color);
-		void doEffect(uint64_t time);
+		void doEffect();
 		void run(uint64_t time);
 	private:
 		uint8_t _address;
@@ -120,6 +120,8 @@ class RGBClass
 		boolean _effectActive;
 		boolean _effectToggle;
 		uint8_t _effectColor;
+		boolean _effectChange;
+		boolean _effectEnd;
 };
 
 extern RGBClass RGB;

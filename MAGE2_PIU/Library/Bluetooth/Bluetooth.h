@@ -35,6 +35,7 @@ class BluetoothClass
 	void run();
 	void update(uint8_t health, uint8_t status, uint8_t effect);
 	void ack();
+	uint16_t device_id;
 	uint8_t rx_func;
 	uint8_t rx_data[3];
 	boolean msgReady;

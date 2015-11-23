@@ -112,6 +112,7 @@ void BluetoothClass::run()
 		case 1:
 			rx_func = data;
 			_sum = data;
+			_step++;
 			break;
 		case 2:
 			rx_data[0] = data;
