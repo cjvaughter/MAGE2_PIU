@@ -8,9 +8,11 @@
 #include <XBee.h>
 
 uint8_t state = Dead;
+uint8_t health = 0;
+uint8_t effect = 0;
 uint64_t currentTime = 0;
 uint16_t player_id = 0;
-uint8_t team = 0;     			    
+uint8_t team = Red;     			    
 uint8_t lastDirection = NoDirection;
 
 uint64_t nextTime = 0;
@@ -81,21 +83,23 @@ void loop()
 				XBee.connected = true;
 				team = XBee.nextByte();
 				RGB.setLed(Team, team);
-				//tell weapon
+				//tell weapon?
 				break;
 			case Disconnect:
 				XBee.connected = false;
 				RGB.setLed(All, NoColor);
-				//tell weapon
+				//tell weapon?
 				break;
 			case Health:
-				RGB.setHealth(XBee.nextByte());
+				health = XBee.nextByte();
+				RGB.setHealth(health);
 				break;
 			case State:
 				state = XBee.nextByte();
 				break;
 			case Effect:
-				RGB.setEffect(XBee.nextByte());
+				effect = XBee.nextByte();
+				RGB.setEffect(effect);
 				break;
 			case Update:
 				switch(state)
@@ -124,13 +128,14 @@ void loop()
 				}
 				RGB.doEffect(currentTime);
 				lastDirection = NoDirection;
-				//update weapon
+				Bluetooth.update(health, state, effect);
 				break;
 			case DFU:
 				XBee.transparent_mode();
 				reset(true);
 				break;
 			default:
+				//unrecognized message
 				RGB.setLed(Team, Red, Blink);
 				XBee.discard();
 				break;
@@ -145,28 +150,31 @@ void loop()
 	{
 		switch(Bluetooth.rx_func)
 		{
-			//process messages here
-			case 1:
-				Bluetooth.connected = true;
-				//XBee.connect(player_id, Bluetooth.device_id);
-				RGB.setLed(HealthBar, Blue);
-				break;
-			case 0x00:
+			case BTHeartbeat:
 				//update heartbeat time
-				RGB.setLed(Team, Green);
-				delay(50);
-				RGB.setLed(Team, NoColor);
+				Bluetooth.ack();
 				break;
-			case 0xFF:
-				//do nothing
+			case BTConnect:
+				Bluetooth.connected = true;
+				Bluetooth.device_id = Bluetooth.rx_data[0]<<8 | Bluetooth.rx_data[1];
+				XBee.connect(player_id, Bluetooth.device_id);
+				Bluetooth.ack();
+				//RGB blink healthbar for a second with Bluetooth.rx_data[2]
+				break;
+			case BTSpell_TX:
+				XBee.tx_data[0] = Spell_TX;
+				XBee.tx_data[1] = Bluetooth.data[0];
+				Xbee.Encode(2);
+				Bluetooth.ack();
+				break;
+			case BTUpdate:
+				//send Xbee msg
+				Bluetooth.ack();
 				break;
 			default:
-				RGB.setLed(Team, Red);
-				delay(100);
-				RGB.setLed(Team, NoColor);
+				//unrecognized message
 				break;
 		}
-		Bluetooth.ack();
 		Bluetooth.msgReady = false;
 	}
 

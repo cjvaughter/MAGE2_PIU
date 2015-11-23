@@ -11,8 +11,16 @@
 
 #define BT Serial3
 #define BTDelimiter 0x3C
-#define ACK 0xFF
 #define Check 0xFF
+
+enum BluetoothMsg
+{
+	BTHeartbeat,
+	BTConnect,
+    BTSpell_TX,
+	BTUpdate,
+	BTACK = 0xFF
+};
 
 class BluetoothClass
 {
@@ -25,12 +33,10 @@ class BluetoothClass
 	boolean command(const char* cmd);
 	boolean wait_for_lf();
 	void run();
-	void write();
+	void update(uint8_t health, uint8_t status, uint8_t effect);
 	void ack();
-	uint8_t color;
-	uint16_t device_id;
-	uint8_t rx_func, tx_func;
-	uint8_t device_status;
+	uint8_t rx_func;
+	uint8_t rx_data[3];
 	boolean msgReady;
 	boolean connected;
 	

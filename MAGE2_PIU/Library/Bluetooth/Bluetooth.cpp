@@ -112,40 +112,23 @@ void BluetoothClass::run()
 		case 1:
 			rx_func = data;
 			_sum = data;
-			switch(rx_func)
-			{
-			case 0x00: case 0x02: case 0xFF:
-				_step = 2;
-				break;
-			case 0x01:
-				_step = 2;
-				break;
-			case 0x03:
-				_step = 5;
-				break;
-			}
 			break;
 		case 2:
-			device_id = data<<8;
+			rx_data[0] = data;
 			_sum += data;
 			_step++;
 			break;
 		case 3:
-			device_id |= data;
+			rx_data[1] = data;
 			_sum += data;
 			_step++;
 			break;
 		case 4:
-			color = data;
-			_sum += data;
-			_step = 255;
-			break;
-		case 5:
-			device_status = data;
+			rx_data[2] = data;
 			_sum += data;
 			_step++;
 			break;
-		case 255:
+		case 5:
 			_checksum = data;
 			if (Check - _sum == _checksum)
 			{
@@ -157,23 +140,22 @@ void BluetoothClass::run()
 	}
 }
 
-void BluetoothClass::write()
+void BluetoothClass::update(uint8_t health, uint8_t status, uint8_t effect)
 {
-	uint8_t sum = tx_func;
-	switch(tx_func)
-	{
-		case 0x03:
-			BT.write(device_status);
-			sum += device_status;
-			break;
-	}
+	uint8_t sum = BTUpdate + health + status + effect;
+	
+	BT.write(BTDelimiter);
+	BT.write(BTUpdate);
+	BT.write(health);
+	BT.write(status);
+	BT.write(effect);
 	BT.write(Check - sum);
 }
 
 void BluetoothClass::ack()
 {
 	BT.write(BTDelimiter);
-	BT.write(ACK);
+	BT.write(BTACK);
 	BT.write(0x00);
 	BT.write(0x00);
 	BT.write(0x00);
