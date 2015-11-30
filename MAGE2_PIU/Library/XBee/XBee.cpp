@@ -8,9 +8,10 @@
 
 XBeeClass XBee;
 
-void XBeeClass::init()
+void XBeeClass::init(uint64_t address)
 {
 	XB.begin(38400);
+	coordinator = address;
 	connected = false;
 	nextTime = 0;
 	_msgReady = false;
@@ -20,19 +21,24 @@ void XBeeClass::init()
 	tx_bfr[0] = (Delimiter);
 	tx_bfr[3] = (TX);
 	tx_bfr[4] = (0); //No response
-	tx_bfr[5] = (Coordinator0);
-	tx_bfr[6] = (Coordinator1);
-	tx_bfr[7] = (Coordinator2);
-	tx_bfr[8] = (Coordinator3);
-	tx_bfr[9] = (Coordinator4);
-	tx_bfr[10] = (Coordinator5);
-	tx_bfr[11] = (Coordinator6);
-	tx_bfr[12] = (Coordinator7);
-	tx_bfr[13] = (Coordinator8);
-	tx_bfr[14] = (DefaultAddress16High);
-	tx_bfr[15] = (DefaultAddress16Low);
-	tx_bfr[16] = (0); //Maximum network hops
-	tx_bfr[17] = (0); //No options
+	tx_bfr[5] = (byte)(coordinator >> 56);
+	tx_bfr[6] = (byte)(coordinator >> 48);
+	tx_bfr[7] = (byte)(coordinator >> 40);
+	tx_bfr[8] = (byte)(coordinator >> 32);
+	tx_bfr[9] = (byte)(coordinator >> 24);
+	tx_bfr[10] = (byte)(coordinator >> 16);
+	tx_bfr[11] = (byte)(coordinator >> 8);
+	tx_bfr[12] = (byte)(coordinator);
+	tx_bfr[13] = (DefaultAddress16High);
+	tx_bfr[14] = (DefaultAddress16Low);
+	tx_bfr[15] = (0); //Maximum network hops
+	tx_bfr[16] = (0); //No options
+	
+	SendChecksum = 0;
+	for(int i = 3; i < 15; i++)
+	{
+		SendChecksum += tx_bfr[i];
+	}
 	api_mode();
 }
 
@@ -139,16 +145,6 @@ void XBeeClass::wait_for_cr()
 
 void XBeeClass::Decode(uint8_t data)
 {
-	if (data == Escape)
-    {
-        _escape = true;
-        return;
-    }
-    if (_escape)
-    {
-        data ^= XOR;
-        _escape = false;
-    }
 	switch (_step)
 	{
 		case 0:
@@ -214,15 +210,10 @@ void XBeeClass::Encode(uint8_t length)
 	tx_bfr[1] = ((byte)((temp) >> 8));
 	tx_bfr[2] = ((byte)(temp));
 	
-	byte offset = 18;
+	byte offset = 17;
 	for(byte i = 0; i < length; i++)
 	{
 		sum += tx_data[i];
-		if (tx_data[i] == Delimiter || tx_data[i] == Escape || tx_data[i] == XON || tx_data[i] == XOFF)
-		{
-			tx_data[i] ^= XOR;
-			tx_bfr[offset++] = (Escape);
-		}
 		tx_bfr[offset++] = tx_data[i];
 	}
 	tx_bfr[offset++] = ((byte)(Check - sum));

@@ -11,6 +11,7 @@ SettingsClass Settings;
 boolean SettingsClass::init()
 {
 	player_id = 0;
+	coordinatorAddress = 0;
 	debugEnabled = false;
 	
 	return SD.begin(SDPin);
@@ -56,6 +57,16 @@ boolean SettingsClass::read()
 				{
 					debugEnabled = true;
 				}
+			}
+			else if(strcmp(name, "coordinator") == 0)
+			{
+				char upper[9], lower[9]; 
+				memcpy(upper, value, 8);
+				upper[8] = '\0';
+				memcpy(lower, value+8, 8);
+				lower[8] = '\0';
+				
+				coordinatorAddress = (((uint64_t)strtoul(upper, NULL, 16)) << 32) | strtoul(lower, NULL, 16);
 			}
 		}
 		config.close();

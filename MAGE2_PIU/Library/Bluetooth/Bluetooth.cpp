@@ -32,8 +32,9 @@ boolean BluetoothClass::init()
 	
 	//PORTF |= 0x08;
 	//BT.begin(9600);
+	
 	if(!find_baud()) return false;
-
+	
 	error += command("RMAAD", "0");
 	error += command("ROLE", "0");
 	error += command("NAME", "MAGE2_PIU");

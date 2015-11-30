@@ -11,22 +11,20 @@ uint8_t state = Dead;
 uint8_t health = 0;
 uint8_t effect = 0;
 uint64_t currentTime = 0;
-uint16_t player_id = 0xABCD;
+uint16_t player_id = 0;
 uint8_t team = Red;     			    
 uint8_t lastDirection = NoDirection;
 
 uint64_t nextTime = 0;
 	
-void Error(const char* message);
+void Error(const char* message, uint8_t color = Red);
 void reset(boolean DFU = false);
 	
 void setup()
 {
 	Serial.begin(9600);
-	
 	RGB.init();
-	XBee.init();
-	/*
+	
 	if(Settings.init()) 
 	{
 		if(Settings.read())
@@ -34,6 +32,8 @@ void setup()
 			player_id = Settings.player_id;
 			if(player_id == 0)
 				Error("Invalid player ID!");
+			if(Settings.coordinatorAddress == 0)
+				Error("Invalid coordinator address!");
 		}
 		else
 		{
@@ -44,12 +44,14 @@ void setup()
 	{
 		Error("No SD card!");
 	}
-	*/
-	//Haptic.init();
+	
+	XBee.init(Settings.coordinatorAddress);
+	
+	Haptic.init();
 	MIRP2.init();
 	
 	if(!Bluetooth.init())
-		Error("Could not communicate with Bluetooth module.");
+		Error("Could not communicate with Bluetooth module.", Blue);
 }
 
 void loop()
@@ -75,10 +77,10 @@ void loop()
 	*/
 	//XBee transactions 
 	
-	if(Bluetooth.connected && !XBee.connected)
+	if(Bluetooth.connected && !XBee.connected && currentTime >= nextTime)
 	{
 		XBee.connect(player_id, 0xEEEE);
-		delay(1000);
+		nextTime = currentTime + 1000;
 	}
 	
 	XBee.run(currentTime);
@@ -216,12 +218,13 @@ void loop()
 	RGB.run(currentTime);
 }
 
-void Error(const char* message)
+void Error(const char* message, uint8_t color)
 {
 	Serial.println(message);
 	while(1)
 	{
-		RGB.setLed(All, Red, B_60);
+		RGB.setLed(HealthBar, Red);
+		RGB.setLed(Team, color, B_100);
 		RGB.setLed(Power, Red, B_100);
 		delay(300);
 		RGB.setLed(All, NoColor);

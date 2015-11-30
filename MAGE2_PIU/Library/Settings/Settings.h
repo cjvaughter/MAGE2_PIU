@@ -10,7 +10,7 @@
 #include <Arduino.h>
 #include <SD.h>
 
-#define SDPin 10
+#define SDPin 53
 
 class SettingsClass
 {
@@ -18,6 +18,7 @@ class SettingsClass
 		boolean init();
 		boolean read();
 		uint16_t player_id;
+		uint64_t coordinatorAddress;
 		boolean debugEnabled;
 	private:
 		File config;
