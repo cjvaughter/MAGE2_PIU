@@ -11,6 +11,8 @@ BluetoothClass Bluetooth;
 boolean BluetoothClass::init()
 {	
 	connected = false;
+	nextHeartbeat = 0;
+	device_id = 0xFFFF;
 	uint8_t error = 0;	
 	
 	DDRD |= 0x80;
@@ -19,7 +21,7 @@ boolean BluetoothClass::init()
 	DDRF |= 0x08;
 	PORTF |= 0x08;
 	
-	delay(500); //for module to start up
+	delay(800); //for module to start up
 	
 	//if(!find_baud()) return false;
 	
@@ -39,10 +41,11 @@ boolean BluetoothClass::init()
 	error += command("ROLE", "0");
 	error += command("NAME", "MAGE2_PIU");
 	error += command("PSWD", "1234");
+	error += command("CMODE", "1");
 	//error += command("CLASS", "020710"); //Class is Networking Wearable (Helmet)
+	
 	PORTF &= ~(0x08);
 	error += command("RESET");
-
 	return (error == 0);
 }
 
@@ -93,52 +96,64 @@ boolean BluetoothClass::wait_for_lf()
 	return true; //you tried
 }
 
+void BluetoothClass::confirmConnection(uint16_t id)
+{
+	uint8_t idHigh = (byte)(id >> 8), idLow = (byte)id;
+	BT.write(BTDelimiter);
+	BT.write(BTConnect);
+	BT.write(idHigh);
+	BT.write(idLow);
+	BT.write(0x00);
+	BT.write((byte)(Check - (BTConnect + idLow + idHigh)));
+}
+
 void BluetoothClass::run()
 {
 	uint8_t nbytes = (uint8_t)BT.available();
-	while(nbytes--)
+	while(nbytes--) read(BT.read());
+}
+
+void BluetoothClass::read(uint8_t data)
+{	
+	switch(_step)
 	{
-		uint8_t data = BT.read();
-		Serial1.write(data);
-		
-		switch(_step)
-		{
 		case 0:
-			if (data == BTDelimiter)
-			{
-				msgReady = false;
-				_step++;
-			}
-			break;
-		case 1:
-			rx_func = data;
-			_sum = data;
+		if (data == BTDelimiter)
+		{
+			msgReady = false;
 			_step++;
-			break;
-		case 2:
-			rx_data[0] = data;
-			_sum += data;
-			_step++;
-			break;
-		case 3:
-			rx_data[1] = data;
-			_sum += data;
-			_step++;
-			break;
-		case 4:
-			rx_data[2] = data;
-			_sum += data;
-			_step++;
-			break;
-		case 5:
-			_checksum = data;
-			if (Check - _sum == _checksum)
-			{
-				msgReady = true;
-			}
-			_step = 0;
-			break;
 		}
+		break;
+		case 1:
+		rx_func = data;
+		if(!connected && rx_func != BTConnect)
+			_step = 0;
+		_sum = data;
+		_step++;
+		break;
+		case 2:
+		rx_data[0] = data;
+		_sum += data;
+		_step++;
+		break;
+		case 3:
+		rx_data[1] = data;
+		_sum += data;
+		_step++;
+		break;
+		case 4:
+		rx_data[2] = data;
+		_sum += data;
+		_step++;
+		break;
+		case 5:
+		_checksum = data;
+		if (Check - _sum == _checksum)
+		{
+			msgReady = true;
+		}
+		_step = 0;
+		break;
 	}
 }
 

@@ -39,7 +39,7 @@ void XBeeClass::init(uint64_t address)
 	{
 		SendChecksum += tx_bfr[i];
 	}
-	api_mode();
+	//api_mode();
 }
 
 void XBeeClass::connect(uint16_t player_id, uint16_t device_id)
@@ -107,7 +107,7 @@ void XBeeClass::transparent_mode()
 void XBeeClass::api_mode()
 {
 	enter_at_mode();
-	XB.print("ATAP 2\r");
+	XB.print("ATAP 1\r");
 	XB.flush();
 	wait_for_cr();
 	exit_at_mode();
@@ -145,6 +145,7 @@ void XBeeClass::wait_for_cr()
 
 void XBeeClass::Decode(uint8_t data)
 {
+	Serial.print(data, HEX);
 	switch (_step)
 	{
 		case 0:
@@ -156,7 +157,7 @@ void XBeeClass::Decode(uint8_t data)
 			}
 			break;
 		case 1:
-			_length = (uint8_t)(data << 8);
+			_length = (uint16_t)(data << 8);
 			_step++;
 			break;
 		case 2:
@@ -185,10 +186,10 @@ void XBeeClass::Decode(uint8_t data)
 		default:
 			rx_data[_index++] = data;
 			_sum += data;
-			if (_index == _length - RX_Header) _step = 255;
+			if (_index >= _length - RX_Header) _step = 255;
 			break;
 		case 255:
-			_checksum = data;
+			_checksum = data;				
 			if (Check - _sum == _checksum)
 			{
 				rx_length = _index;
@@ -198,6 +199,7 @@ void XBeeClass::Decode(uint8_t data)
 			_step = 0;
 			_busy = false;
 			nextTime = 0;
+			Serial.println();
 			break;
     }
 }

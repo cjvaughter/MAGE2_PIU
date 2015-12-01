@@ -14,11 +14,14 @@ uint64_t currentTime = 0;
 uint16_t player_id = 0;
 uint8_t team = Red;     			    
 uint8_t lastDirection = NoDirection;
+boolean connectionRequest = false;
 
 uint64_t nextTime = 0;
-	
+
+void changeWeapon();	
 void Error(const char* message, uint8_t color = Red);
 void reset(boolean DFU = false);
+void testMode();
 	
 void setup()
 {
@@ -42,7 +45,8 @@ void setup()
 	}
 	else
 	{
-		Error("No SD card!");
+		//Error("No SD card!");
+		testMode();
 	}
 	
 	XBee.init(Settings.coordinatorAddress);
@@ -52,37 +56,24 @@ void setup()
 	
 	if(!Bluetooth.init())
 		Error("Could not communicate with Bluetooth module.", Blue);
+	
+	delay(250);
 }
 
 void loop()
 {
 	currentTime = millis();
-	/*
-	if(currentTime > nextTime)
+
+	if(connectionRequest)
 	{
-		nextTime = currentTime + 1500;
-		if(lastDirection > Right)
-			lastDirection = Front;
-		else
-			lastDirection++;
-		RGB.setDirection(Red, lastDirection, currentTime);
+		if(currentTime >= nextTime)
+		{
+			XBee.connect(player_id, Bluetooth.device_id);
+			nextTime = currentTime + 1000;
+		}
 	}
-	*/
-	/*
-	if(!XBee.connected)
-	{
-		XBee.connect(0xCCCC, 0xEEEE);
-		delay(1000);
-	}
-	*/
+	
 	//XBee transactions 
-	
-	if(Bluetooth.connected && !XBee.connected && currentTime >= nextTime)
-	{
-		XBee.connect(player_id, 0xEEEE);
-		nextTime = currentTime + 1000;
-	}
-	
 	XBee.run(currentTime);
 	if(XBee.available())
 	{
@@ -92,13 +83,17 @@ void loop()
 				XBee.connected = true;
 				team = XBee.nextByte();
 				RGB.setLed(Team, team, B_100);
-				//tell weapon?
+				connectionRequest = false;
+				if(!Bluetooth.connected)
+				{
+					Bluetooth.device_id = 0xFFFF;
+					changeWeapon();
+				}
 				break;
 			case Disconnect:
 				XBee.connected = false;
 				RGB.setLed(All, NoColor);
 				delay(1000);
-				//tell weapon?
 				break;
 			case Health:
 				health = XBee.nextByte();
@@ -119,8 +114,6 @@ void loop()
 						if(effect == NoColor)
 						{
 							RGB.showHealth();
-							RGB.setLed(Team, team, B_100);
-							Haptic.pulse(NoDirection, 1, 120);
 						}
 						else
 						{
@@ -168,14 +161,31 @@ void loop()
 		switch(Bluetooth.rx_func)
 		{
 			case BTHeartbeat:
-				//update heartbeat time
+				Bluetooth.nextHeartbeat = currentTime + 3000;
 				Bluetooth.ack();
 				break;
 			case BTConnect:
 				Bluetooth.connected = true;
-				Bluetooth.device_id = Bluetooth.rx_data[0]<<8 | Bluetooth.rx_data[1];
+				Bluetooth.device_id = (((uint16_t)Bluetooth.rx_data[0])<<8) | Bluetooth.rx_data[1];
 				Bluetooth.ack();
-				//RGB blink health bar for a second with Bluetooth.rx_data[2]
+				delay(50);
+				Bluetooth.confirmConnection(player_id);
+				
+				if(XBee.connected)
+					changeWeapon();
+				else
+				{
+					connectionRequest = true;	
+					RGB.setLed(HealthBar, Bluetooth.rx_data[2]);
+					delay(80);
+					RGB.setLed(HealthBar, NoColor);
+					delay(80);
+					RGB.setLed(HealthBar, Bluetooth.rx_data[2]);
+					delay(80);
+					RGB.setLed(HealthBar, NoColor);
+				}
+				
+				Bluetooth.nextHeartbeat = currentTime + 3000;
 				break;
 			case BTSpell_TX:
 				XBee.tx_data[0] = Spell_TX;
@@ -184,7 +194,8 @@ void loop()
 				XBee.Encode(2);
 				break;
 			case BTUpdate:
-				//send XBee message
+				//Do nothing for now
+				//(destructible devices will be in a future update)
 				Bluetooth.ack();
 				break;
 			default:
@@ -192,6 +203,15 @@ void loop()
 				break;
 		}
 		Bluetooth.msgReady = false;
+	}
+	if(Bluetooth.connected)
+	{
+		if(currentTime >= Bluetooth.nextHeartbeat)
+		{
+			Bluetooth.connected = false;
+			Bluetooth.device_id = 0xFFFF;
+			changeWeapon();
+		}
 	}
 
 	if(MIRP2.msgReady)
@@ -205,17 +225,21 @@ void loop()
 		XBee.tx_data[5] = MIRP2.data[4];
 		lastDirection = MIRP2.direction;
 		MIRP2.msgReady = false;
-		sei();
-		RGB.setLed(Team, Green);
-		delay(100);
-		RGB.setLed(Team, Red);
-		
+		sei();		
 		XBee.Encode(6);
 	}
 	
 	//UX
 	Haptic.run(currentTime);
 	RGB.run(currentTime);
+}
+
+void changeWeapon()
+{
+	XBee.tx_data[0] = ChangeWeapon;
+	XBee.tx_data[1] = (byte)(Bluetooth.device_id >> 8);
+	XBee.tx_data[2] = (byte)(Bluetooth.device_id);
+	XBee.Encode(3);
 }
 
 void Error(const char* message, uint8_t color)
@@ -257,4 +281,37 @@ void reset(boolean DFU)
 		"eijmp\n"		    //Jump to bootloader
 		:: "r" (DFU)
 	);
+}
+
+void testMode()
+{
+	while(1)
+	{
+		if(MIRP2.msgReady)
+		{
+			uint8_t color;
+			cli();
+			switch(MIRP2.data[2])
+			{
+				case 0:
+					color = Red;
+					break;
+				case 2:
+					color = Blue;
+					break;
+				case 3:
+					color = Green;
+					break;
+				default:
+					color = NoColor;
+					break;
+			}
+			MIRP2.msgReady = false;
+			sei();
+			RGB.setLed(Team, Green);
+			RGB.setLed(HealthBar, color);
+			delay(100);
+			RGB.setLed(Team, Red);
+		}
+	}
 }

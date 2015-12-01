@@ -33,6 +33,7 @@ enum XBeeMsg
 	Update,
     Spell_RX,
     Spell_TX,
+	ChangeWeapon,
 	
 	DFU = 0xFF
 };

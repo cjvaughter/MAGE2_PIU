@@ -14,7 +14,7 @@ boolean SettingsClass::init()
 	coordinatorAddress = 0;
 	debugEnabled = false;
 	
-	return SD.begin(SDPin);
+	return SD.begin();
 }
 
 boolean SettingsClass::read()

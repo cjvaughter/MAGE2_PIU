@@ -10,8 +10,6 @@
 #include <Arduino.h>
 #include <SD.h>
 
-#define SDPin 53
-
 class SettingsClass
 {
 	public:

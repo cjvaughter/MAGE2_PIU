@@ -32,7 +32,9 @@ class BluetoothClass
 	boolean command(const char* cmd, const char* data);
 	boolean command(const char* cmd);
 	boolean wait_for_lf();
+	void confirmConnection(uint16_t id);
 	void run();
+	void read(uint8_t data);
 	void update(uint8_t health, uint8_t status, uint8_t effect);
 	void ack();
 	uint16_t device_id;
@@ -40,6 +42,7 @@ class BluetoothClass
 	uint8_t rx_data[3];
 	boolean msgReady;
 	boolean connected;
+	uint64_t nextHeartbeat;
 	
 	private:
 	uint8_t _step;
