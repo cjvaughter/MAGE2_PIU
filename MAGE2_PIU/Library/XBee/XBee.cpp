@@ -145,7 +145,6 @@ void XBeeClass::wait_for_cr()
 
 void XBeeClass::Decode(uint8_t data)
 {
-	Serial.print(data, HEX);
 	switch (_step)
 	{
 		case 0:
@@ -193,13 +192,13 @@ void XBeeClass::Decode(uint8_t data)
 			if (Check - _sum == _checksum)
 			{
 				rx_length = _index;
-				_msgReady = true;
+				if(!connected && rx_data[0] != Connect) _msgReady = false;
+				else _msgReady = true;
 				rx_data[rx_length] = '\0';
 			}
 			_step = 0;
 			_busy = false;
 			nextTime = 0;
-			Serial.println();
 			break;
     }
 }

@@ -93,6 +93,7 @@ void loop()
 			case Disconnect:
 				XBee.connected = false;
 				RGB.setLed(All, NoColor);
+				connectionRequest = false;
 				delay(1000);
 				break;
 			case Health:
@@ -161,7 +162,7 @@ void loop()
 		switch(Bluetooth.rx_func)
 		{
 			case BTHeartbeat:
-				Bluetooth.nextHeartbeat = currentTime + 3000;
+				Bluetooth.nextHeartbeat = currentTime + 9000;
 				Bluetooth.ack();
 				break;
 			case BTConnect:
