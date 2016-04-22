@@ -9,10 +9,12 @@
 
 #include <Arduino.h>
 #include <Constants.h>
+#include <Debugger.h>
 
-class HapticClass
+class HapticClass : Debugger
 {
 	public:
+		HapticClass() : Debugger("HAPTIC") {}
 		void init();
 		void pulse(uint8_t direction, uint8_t pulseCount, uint16_t pulseOnTime, uint16_t pulseOffTime = 0);
 		void stop();

@@ -10,6 +10,8 @@ BluetoothClass Bluetooth;
 
 boolean BluetoothClass::init()
 {	
+	LOG("Initializing...");
+
 	connected = false;
 	nextHeartbeat = 0;
 	device_id = 0xFFFF;
@@ -21,7 +23,7 @@ boolean BluetoothClass::init()
 	DDRF |= 0x08;
 	PORTF |= 0x08;
 	
-	delay(800); //for module to start up
+	delay(1000); //for module to start up
 	
 	//if(!find_baud()) return false;
 	
@@ -35,7 +37,11 @@ boolean BluetoothClass::init()
 	//PORTF |= 0x08;
 	//BT.begin(9600);
 	
-	if(!find_baud()) return false;
+	if(!find_baud())
+	{
+		LOG("Could not detect baud rate");
+		return false;
+	}
 	
 	error += command("RMAAD", "0");
 	error += command("ROLE", "0");
@@ -46,11 +52,16 @@ boolean BluetoothClass::init()
 	
 	PORTF &= ~(0x08);
 	error += command("RESET");
+	if(error == 0)
+	{
+		LOG("Success!");
+	}
 	return (error == 0);
 }
 
 boolean BluetoothClass::find_baud()
 {
+	LOG("Detecting baud rate");
 	uint8_t error = 0;
 	for(uint32_t baud = 1200; baud < 115200; baud *= 2)
 	{
@@ -98,6 +109,7 @@ boolean BluetoothClass::wait_for_lf()
 
 void BluetoothClass::confirmConnection(uint16_t id)
 {
+	LOG_F("Connection confirmed - PIU ID: 0x%04X", id);
 	uint8_t idHigh = (byte)(id >> 8), idLow = (byte)id;
 	BT.write(BTDelimiter);
 	BT.write(BTConnect);
@@ -152,6 +164,10 @@ void BluetoothClass::read(uint8_t data)
 		{
 			msgReady = true;
 		}
+		else
+		{
+			LOG_F("BAD PACKET CHECKSUM: 0x%02X - Expected 0x%02X", _checksum, Check - _sum);
+		}
 		_step = 0;
 		break;
 	}
@@ -159,6 +175,7 @@ void BluetoothClass::read(uint8_t data)
 
 void BluetoothClass::update(uint8_t health, uint8_t status, uint8_t effect)
 {
+	LOG_F("Sending update - HEALTH: 0x%02X, STATUS: 0x%02X, EFFECT: 0x%02X", health, status, effect);
 	uint8_t sum = BTUpdate + health + status + effect;
 	
 	BT.write(BTDelimiter);

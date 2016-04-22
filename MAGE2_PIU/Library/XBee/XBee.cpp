@@ -10,6 +10,8 @@ XBeeClass XBee;
 
 void XBeeClass::init(uint64_t address)
 {
+	LOG("Initializing...");
+
 	XB.begin(38400);
 	coordinator = address;
 	connected = false;
@@ -40,10 +42,13 @@ void XBeeClass::init(uint64_t address)
 		SendChecksum += tx_bfr[i];
 	}
 	//api_mode();
+
+	LOG("Success!");
 }
 
 void XBeeClass::connect(uint16_t player_id, uint16_t device_id)
 {
+	LOG("Connect request");
 	tx_data[0] = Connect;
 	tx_data[1] = (byte)(player_id>>8);
 	tx_data[2] = (byte)player_id;
@@ -65,6 +70,7 @@ void XBeeClass::discard()
 
 void XBeeClass::heartbeat()
 {
+	//LOG("Heartbeat"); //annoying
 	tx_data[0] = Heartbeat;
 	Encode(1);
 }
@@ -97,6 +103,7 @@ uint8_t XBeeClass::nextByte()
 
 void XBeeClass::transparent_mode()
 {
+	LOG("Entering transparent mode");
 	enter_at_mode();
 	XB.print("ATAP 0\r");
 	XB.flush();
@@ -106,6 +113,7 @@ void XBeeClass::transparent_mode()
 
 void XBeeClass::api_mode()
 {
+	LOG("Entering API mode");
 	enter_at_mode();
 	XB.print("ATAP 1\r");
 	XB.flush();
@@ -115,6 +123,7 @@ void XBeeClass::api_mode()
 
 void XBeeClass::enter_at_mode()
 {
+	LOG("Entering AT mode");
 	delay(100);
 	XB.print("+++");
 	XB.flush();
@@ -123,6 +132,7 @@ void XBeeClass::enter_at_mode()
 
 void XBeeClass::exit_at_mode()
 {
+	LOG("Exiting AT mode");
 	XB.write("ATCN\r");
 	XB.flush();
 	wait_for_cr();
@@ -195,6 +205,10 @@ void XBeeClass::Decode(uint8_t data)
 				if(!connected && rx_data[0] != Connect) _msgReady = false;
 				else _msgReady = true;
 				rx_data[rx_length] = '\0';
+			}
+			else
+			{
+				LOG("BAD CHECKSUM");
 			}
 			_step = 0;
 			_busy = false;

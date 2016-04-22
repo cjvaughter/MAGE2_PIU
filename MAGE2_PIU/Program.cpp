@@ -1,85 +1,107 @@
-#include <Arduino.h>
-#include <Bluetooth.h>
-#include <Constants.h>
-#include <Haptic.h>
-#include <MIRP2.h>
-#include <RGB.h>
-#include <Settings.h>
-#include <XBee.h>
+#include "Program.h"
 
-uint8_t state = Dead;
-uint8_t health = 0;
-uint8_t effect = 0;
-uint64_t currentTime = 0;
-uint16_t player_id = 0;
-uint8_t team = Red;     			    
-uint8_t lastDirection = NoDirection;
-boolean connectionRequest = false;
-
-uint64_t nextTime = 0;
-
-void changeWeapon();	
-void Error(const char* message, uint8_t color = Red);
-void reset(boolean DFU = false);
-void testMode();
-	
-void setup()
-{
-	Serial.begin(9600);
-	RGB.init();
-	
+void ProgramClass::setup()
+{	
+	Serial.begin(38400);
+	MAINLOG("Booting up...");
 	if(Settings.init()) 
 	{
 		if(Settings.read())
 		{
 			player_id = Settings.player_id;
 			if(player_id == 0)
-				Error("Invalid player ID!");
+				FatalError("Invalid player ID!");
 			if(Settings.coordinatorAddress == 0)
-				Error("Invalid coordinator address!");
+				FatalError("Invalid coordinator address!");
 		}
 		else
 		{
-			Error("Could not read settings!");
+			FatalError("Could not read settings!");
 		}
 	}
 	else
 	{
-		//Error("No SD card!");
-		testMode();
+		#ifdef DEBUG
+		testMode = true;
+		player_id = 0xABCD;
+		//player_id = 0x1234;
+		Settings.coordinatorAddress = 0x0013A200409377C3;
+		#else
+		FatalError("No SD card!");
+		#endif
 	}
-	
+	MAINLOG_F("Mode: %s", (testMode) ? "TESTMODE" : "GAMEPLAY");
+	MAINLOG_F("Player ID: 0x%04X", player_id);
+	MAINLOG_F("Coordinator: 0x%08lX%08lX", (uint32_t)(Settings.coordinatorAddress>>32), (uint32_t)Settings.coordinatorAddress);
+
+	RGB.init();
 	XBee.init(Settings.coordinatorAddress);
-	
 	Haptic.init();
 	MIRP2.init();
-	
 	if(!Bluetooth.init())
-		Error("Could not communicate with Bluetooth module.", Blue);
+		#ifdef DEBUG
+		LOG("Could not configure Bluetooth module!");
+		#else
+		FatalError("Could not configure Bluetooth module!", Blue);
+		#endif
 	
 	delay(250);
+	MAINLOG("Boot success!");
 }
 
-void loop()
+void ProgramClass::loop()
 {
 	currentTime = millis();
 
 	if(connectionRequest)
 	{
-		if(currentTime >= nextTime)
+		if(currentTime >= nextRequestTime)
 		{
-			XBee.connect(player_id, Bluetooth.device_id);
-			nextTime = currentTime + 1000;
+			if(connectCounter >= MAX_CONNECT_ATTEMPTS)
+			{
+				LOG("XBEE", "Server connection timed out");
+				connectionRequest = false;
+				serverTimeout = true;
+			}
+			else
+			{
+				XBee.connect(player_id, Bluetooth.device_id);
+				nextRequestTime = currentTime + 1000;
+				connectCounter++;
+			}
 		}
 	}
 	
-	//XBee transactions 
+	#ifdef BT_TEST
+	if(serverTimeout && currentTime >= nextRequestTime)
+	{
+		switch(btTestCase)
+		{
+			case 0:
+				Bluetooth.update(100, Alive, NoColor);
+				btTestCase++;
+				break;
+			case 1:
+				Bluetooth.update(80, Stunned, Blue);
+				btTestCase++;
+				break;
+			case 2:
+				Bluetooth.update(0, Dead, Red);
+				btTestCase = 0;
+				break;
+		}
+		nextRequestTime = currentTime + 5000;
+	}
+	#endif
+
+	//XBee transactions
 	XBee.run(currentTime);
 	if(XBee.available())
 	{
 		switch(XBee.nextByte())
-		{	
+		{
 			case Connect:
+				LOG("XBEE", "Connection confirmed");
 				XBee.connected = true;
 				team = XBee.nextByte();
 				RGB.setLed(Team, team, B_100);
@@ -91,6 +113,7 @@ void loop()
 				}
 				break;
 			case Disconnect:
+				LOG("XBEE", "Server requested disconnect");
 				XBee.connected = false;
 				RGB.setLed(All, NoColor);
 				connectionRequest = false;
@@ -147,14 +170,13 @@ void loop()
 				break;
 			default:
 				//unrecognized message
-				RGB.setLed(Team, Red, B_100, Blink);
 				XBee.discard();
 				break;
 		}
 		if(!XBee.available())
 			XBee.heartbeat();
 	}
-	
+
 	//Bluetooth transactions
 	Bluetooth.run();
 	if(Bluetooth.msgReady)
@@ -162,21 +184,23 @@ void loop()
 		switch(Bluetooth.rx_func)
 		{
 			case BTHeartbeat:
+				LOG("BLUETOOTH", "Heartbeat");
 				Bluetooth.nextHeartbeat = currentTime + 9000;
 				Bluetooth.ack();
 				break;
 			case BTConnect:
+				LOG_F_AS("BLUETOOTH", "Connect request - Weapon ID: 0x%02X%02X Color: 0x%02X", Bluetooth.rx_data[0], Bluetooth.rx_data[1], Bluetooth.rx_data[2]);
 				Bluetooth.connected = true;
 				Bluetooth.device_id = (((uint16_t)Bluetooth.rx_data[0])<<8) | Bluetooth.rx_data[1];
 				Bluetooth.ack();
 				delay(50);
 				Bluetooth.confirmConnection(player_id);
-				
 				if(XBee.connected)
 					changeWeapon();
 				else
 				{
-					connectionRequest = true;	
+					connectionRequest = true;
+					connectCounter = 0;
 					RGB.setLed(HealthBar, Bluetooth.rx_data[2]);
 					delay(80);
 					RGB.setLed(HealthBar, NoColor);
@@ -185,22 +209,28 @@ void loop()
 					delay(80);
 					RGB.setLed(HealthBar, NoColor);
 				}
-				
-				Bluetooth.nextHeartbeat = currentTime + 3000;
+				Bluetooth.nextHeartbeat = currentTime + 9000;
 				break;
 			case BTSpell_TX:
+				LOG_F_AS("BLUETOOTH", "Spell TX - Unique Field: %#X", Bluetooth.rx_data[0]);
 				XBee.tx_data[0] = Spell_TX;
 				XBee.tx_data[1] = Bluetooth.rx_data[0];
 				Bluetooth.ack();
 				XBee.Encode(2);
+				Bluetooth.nextHeartbeat = currentTime + 9000;
 				break;
 			case BTUpdate:
 				//Do nothing for now
 				//(destructible devices will be in a future update)
+				LOG("BLUETOOTH", "Update messages are not yet supported!");
 				Bluetooth.ack();
+				Bluetooth.nextHeartbeat = currentTime + 9000;
+				break;
+			case BTACK:
+				//do nothing
 				break;
 			default:
-				//unrecognized message
+				LOG_F_AS("BLUETOOTH", "Invalid message!  Func: 0x%02X  Data: 0x%02X 0x%02X 0x%02X", Bluetooth.rx_func, Bluetooth.rx_data[0], Bluetooth.rx_data[1], Bluetooth.rx_data[2]);
 				break;
 		}
 		Bluetooth.msgReady = false;
@@ -212,6 +242,7 @@ void loop()
 			Bluetooth.connected = false;
 			Bluetooth.device_id = 0xFFFF;
 			changeWeapon();
+			LOG("BLUETOOTH", "Lost connection - Heartbeat timed out");
 		}
 	}
 
@@ -226,8 +257,21 @@ void loop()
 		XBee.tx_data[5] = MIRP2.data[4];
 		lastDirection = MIRP2.direction;
 		MIRP2.msgReady = false;
-		sei();		
+		sei();
 		XBee.Encode(6);
+
+		#ifdef DEBUG
+		const char* directionName;
+		switch(lastDirection)
+		{
+			case Front: directionName = "FRONT"; break;
+			case Back: directionName = "BACK"; break;
+			case Left: directionName = "LEFT"; break;
+			case Right: directionName = "RIGHT"; break;
+			default: directionName = ""; break;
+		}
+		LOG_F("MIRP packet received from %s - 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X", directionName, MIRP2.data[0], MIRP2.data[1], MIRP2.data[2], MIRP2.data[3], MIRP2.data[4], MIRP2.data[5]);
+		#endif
 	}
 	
 	//UX
@@ -235,7 +279,7 @@ void loop()
 	RGB.run(currentTime);
 }
 
-void changeWeapon()
+void ProgramClass::changeWeapon()
 {
 	XBee.tx_data[0] = ChangeWeapon;
 	XBee.tx_data[1] = (byte)(Bluetooth.device_id >> 8);
@@ -243,9 +287,11 @@ void changeWeapon()
 	XBee.Encode(3);
 }
 
-void Error(const char* message, uint8_t color)
+void ProgramClass::FatalError(const char* message, uint8_t color)
 {
-	Serial.println(message);
+	MAINLOG_F("FATAL ERROR -> %s", message);
+
+	RGB.init();
 	while(1)
 	{
 		RGB.setLed(HealthBar, Red);
@@ -258,13 +304,20 @@ void Error(const char* message, uint8_t color)
 	}
 }
 
-void reset(boolean DFU)
+void ProgramClass::reset(boolean DFU)
 {
 	RGB.setBlinkRate();
 	RGB.setLed(All, NoColor);
 	RGB.setLed(Power, Red, B_100, Blink);
 	if(DFU)
+	{
+		LOG("Entering DFU mode...");
 		RGB.setLed(Team, Green, B_100, Blink);
+	}
+	else
+	{
+		LOG("Resetting...");
+	}	
 	
 	cli();				    //Don't interrupt me
 	
@@ -282,37 +335,4 @@ void reset(boolean DFU)
 		"eijmp\n"		    //Jump to bootloader
 		:: "r" (DFU)
 	);
-}
-
-void testMode()
-{
-	while(1)
-	{
-		if(MIRP2.msgReady)
-		{
-			uint8_t color;
-			cli();
-			switch(MIRP2.data[2])
-			{
-				case 0:
-					color = Red;
-					break;
-				case 2:
-					color = Blue;
-					break;
-				case 3:
-					color = Green;
-					break;
-				default:
-					color = NoColor;
-					break;
-			}
-			MIRP2.msgReady = false;
-			sei();
-			RGB.setLed(Team, Green);
-			RGB.setLed(HealthBar, color);
-			delay(100);
-			RGB.setLed(Team, Red);
-		}
-	}
 }

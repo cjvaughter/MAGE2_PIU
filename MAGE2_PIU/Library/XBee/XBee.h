@@ -8,6 +8,7 @@
 #define XBEE_h
 
 #include <Arduino.h>
+#include <Debugger.h>
 
 #define XB Serial1
 #define BFR_SIZE 32
@@ -38,9 +39,10 @@ enum XBeeMsg
 	DFU = 0xFF
 };
 
-class XBeeClass
+class XBeeClass : Debugger
 {
 	public:
+		XBeeClass() : Debugger("XBEE") {}
 		void init(uint64_t address);
 		void connect(uint16_t player_id, uint16_t device_id);
 		boolean available();

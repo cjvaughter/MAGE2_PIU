@@ -8,6 +8,7 @@
 #define BLUETOOTH_h
 
 #include <Arduino.h>
+#include <Debugger.h>
 
 #define BT Serial3
 #define BTDelimiter 0x3C
@@ -22,9 +23,10 @@ enum BluetoothMsg
 	BTACK = 0xFF
 };
 
-class BluetoothClass
+class BluetoothClass : Debugger
 {
 	public:
+	BluetoothClass() : Debugger("BLUETOOTH") {}
 	boolean init();
 	boolean find_baud();
 	boolean enter_at_mode();

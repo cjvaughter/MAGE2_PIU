@@ -10,6 +10,8 @@ RGBClass RGB;
 
 void RGBClass::init()
 {
+	LOG("Initializing...");
+
 	_effectTime = 0;
 	_effectActive = false;
 	_effectToggle = false;
@@ -22,16 +24,26 @@ void RGBClass::init()
 	_grad = GradOff;
 	_address = LTC3220_ADDR;
 	I2C.begin();
-	if(I2C.writeReg(_address, COMMAND_REG, 0) != 0)
+	uint8_t i2c_error = I2C.writeReg(_address, COMMAND_REG, 0);
+	if(i2c_error != 0)
 	{
 		_address = LTC3220_1_ADDR;
-		I2C.writeReg(_address, COMMAND_REG, 0);
+		i2c_error = I2C.writeReg(_address, COMMAND_REG, 0);
 	}
-	I2C.writeReg(_address, GRAD_BLINK_REG, 0);
+	i2c_error += I2C.writeReg(_address, GRAD_BLINK_REG, 0);
 	
 	setLed(All, NoColor);
 	delay(250);
 	setLed(Power, Red, B_100);
+
+	if(i2c_error != 0)
+	{
+		LOG("I2C Error - Check front panel connection");
+	}
+	else
+	{
+		LOG("Success!");
+	}
 }
 
 void RGBClass::setLed(uint8_t led, uint8_t color, uint8_t brightness, uint8_t led_state)

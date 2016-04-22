@@ -10,6 +10,7 @@
 #include <Arduino.h>
 #include <I2C.h>
 #include <Constants.h>
+#include <Debugger.h>
 
 #define LTC3220_ADDR 0x1C
 #define LTC3220_1_ADDR 0x1D
@@ -91,9 +92,10 @@ enum GradRate
 	GradSlow   = 0x06,	
 };
 
-class RGBClass
+class RGBClass : Debugger
 {
 	public:
+		RGBClass() : Debugger("RGB") {}
 		void init();
 		void setLed(uint8_t led, uint8_t color, uint8_t brightness = B_60, uint8_t led_state = Normal);
 		void setBlinkRate(uint8_t rate = BlinkFast);

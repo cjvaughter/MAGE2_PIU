@@ -10,11 +10,14 @@ HapticClass Haptic;
 
 void HapticClass::init()
 {
+	LOG("Initializing...");
 	DDRF |= 0x03;
+	LOG("Success!");
 }
 
 void HapticClass::pulse(uint8_t direction, uint8_t pulseCount, uint16_t pulseOnTime, uint16_t pulseOffTime) //pulse length and pulse time off are in milliseconds
 {
+	LOG("Pulsing");
 	_pulse = 0;
 	_direction = direction;
 	_pulseCount = pulseCount;
@@ -26,6 +29,7 @@ void HapticClass::pulse(uint8_t direction, uint8_t pulseCount, uint16_t pulseOnT
 
 void HapticClass::stop()
 {
+	LOG("Stopping");
 	_pulse = 255;
 	_pulseCount = 0;
 	PORTF &= ~(0x03);
