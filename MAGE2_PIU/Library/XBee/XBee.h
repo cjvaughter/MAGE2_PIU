@@ -35,6 +35,7 @@ enum XBeeMsg
     Spell_RX,
     Spell_TX,
 	ChangeWeapon,
+	Device_RX,
 	
 	DFU = 0xFF
 };

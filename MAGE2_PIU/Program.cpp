@@ -23,8 +23,7 @@ void ProgramClass::setup()
 	{
 		#ifdef DEBUG
 		testMode = true;
-		player_id = 0xABCD;
-		//player_id = 0x1234;
+		player_id = 0x0000;
 		Settings.coordinatorAddress = 0x0013A200409377C3;
 		#else
 		FatalError("No SD card!");
@@ -39,11 +38,16 @@ void ProgramClass::setup()
 	Haptic.init();
 	MIRP2.init();
 	if(!Bluetooth.init())
+	{
+		/*
 		#ifdef DEBUG
 		LOG("Could not configure Bluetooth module!");
 		#else
-		FatalError("Could not configure Bluetooth module!", Blue);
+		//FatalError("Could not configure Bluetooth module!", Blue);
 		#endif
+		*/
+		MAINLOG("Could not configure Bluetooth module!");
+	}
 	
 	delay(250);
 	MAINLOG("Boot success!");
@@ -226,6 +230,16 @@ void ProgramClass::loop()
 				Bluetooth.ack();
 				Bluetooth.nextHeartbeat = currentTime + 9000;
 				break;
+			case BTSpell_RX: //self cast
+				LOG_F_AS("BLUETOOTH", "Spell RX - Spell: 0x%02X Strength: 0x%02X", Bluetooth.rx_data[0], Bluetooth.rx_data[1]);
+				Bluetooth.ack();
+				XBee.tx_data[0] = Device_RX;
+				XBee.tx_data[1] = Bluetooth.rx_data[0];
+				XBee.tx_data[2] = Bluetooth.rx_data[1];
+				lastDirection = NoDirection;
+				XBee.Encode(3);
+				Bluetooth.nextHeartbeat = currentTime + 9000;
+				break;
 			case BTACK:
 				//do nothing
 				break;
@@ -290,6 +304,7 @@ void ProgramClass::changeWeapon()
 void ProgramClass::FatalError(const char* message, uint8_t color)
 {
 	MAINLOG_F("FATAL ERROR -> %s", message);
+	MAINLOG("Boot failure!");
 
 	RGB.init();
 	while(1)

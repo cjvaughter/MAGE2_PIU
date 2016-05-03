@@ -22,49 +22,67 @@ boolean BluetoothClass::init()
 	
 	DDRF |= 0x08;
 	PORTF |= 0x08;
-	
-	delay(1000); //for module to start up
-	
-	//if(!find_baud()) return false;
-	
-	//error += command("RMAAD");
-	//error += command("ORGL");
-	//PORTF &= ~(0x08);
-	//error += command("RESET");
-	//if(error) return false;
-	//delay(2000);
-	
-	//PORTF |= 0x08;
-	//BT.begin(9600);
+
+	delay(1000); //for module start up
 	
 	if(!find_baud())
 	{
-		LOG("Could not detect baud rate");
-		return false;
+		LOG("Could not detect baud rate! Defaulting to 38400...");
+		BT.begin(38400);
 	}
 	
+	error += command("UART", "38400");
 	error += command("RMAAD", "0");
 	error += command("ROLE", "0");
 	error += command("NAME", "MAGE2_PIU");
+	error += command("SENM", "1,0");
 	error += command("PSWD", "1234");
 	error += command("CMODE", "1");
-	//error += command("CLASS", "020710"); //Class is Networking Wearable (Helmet)
-	
-	PORTF &= ~(0x08);
 	error += command("RESET");
+
 	if(error == 0)
 	{
 		LOG("Success!");
+		PORTF &= ~(0x08);
+		return true;
 	}
-	return (error == 0);
+
+	//compatibility fix for modules with EN instead of KEY //
+	else if(error == 1)									   //
+	{													   //
+		LOG("Success!");								   //
+		hw_reset();										   //
+		return true;									   //
+	}													   //
+														   //
+	hw_reset();											   //
+	BT.begin(38400);									   //
+	// /////////////////////////////////////////////////// //
+
+	return false;
+}
+
+void BluetoothClass::hw_reset()
+{
+	PORTF &= ~(0x08);
+	delay(100);
+	PORTF |= 0x08;
+	delay(100);
 }
 
 boolean BluetoothClass::find_baud()
 {
-	LOG("Detecting baud rate");
+	LOG("Detecting baud rate...");
 	uint8_t error = 0;
+
+	//try 38400 first
+	BT.begin(38400);
+	error = command("AT");
+	if(error == 0) return true;
+
 	for(uint32_t baud = 1200; baud < 115200; baud *= 2)
 	{
+		if(baud == 38400) continue;
 		BT.begin(baud);
 		error = command("AT");
 		if(error == 0) return true;

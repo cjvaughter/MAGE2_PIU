@@ -20,6 +20,7 @@ enum BluetoothMsg
 	BTConnect,
     BTSpell_TX,
 	BTUpdate,
+	BTSpell_RX,
 	BTACK = 0xFF
 };
 
@@ -47,6 +48,7 @@ class BluetoothClass : Debugger
 	uint64_t nextHeartbeat;
 	
 	private:
+	void hw_reset();
 	uint8_t _step;
 	uint16_t _sum;
 	uint8_t _checksum;
